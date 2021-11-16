@@ -17,4 +17,5 @@ The features and instruction will be added later when the code is ready.
 I am creating a branch `NYC` where I will be implementing
 
 - Moderna and Pfizer vaccines.
+-- Moderna was added. I need to implement the correct efficacies and test the code.
 - New age groups according to NYC data.

@@ -88,7 +88,6 @@ end
     kid_comp::Float64 = 0.8
     #comor_comp::Float64 = 0.7 #prop comorbidade tomam
 
-    vac_period::Array{Int64,1} = [21]
     
     vaccinating::Bool = true #vaccinating?
     drop_rate::Float64 = 0.0 #probability of not getting second dose
@@ -137,12 +136,18 @@ end
     strain_ef_red4::Float64 = 0.8 #reduction in efficacy against third strain
     mortality_inc::Float64 = 1.3 #The mortality increase when infected by strain 2
 
+
+    vac_period::Array{Int64,1} = [21;28]
     #=------------ Vaccine Efficacy ----------------------------=#
-    days_to_protection::Array{Array{Int64,1},1} = [[14],[0;7]]
-    vac_efficacy_inf::Array{Array{Array{Float64,1},1},1} = [[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.92]],[[0.368],[0.48;0.736]]] #### 50:5:80
-    vac_efficacy_symp::Array{Array{Array{Float64,1},1},1} = [[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.332],[0.66;0.94]]] #### 50:5:80
-    vac_efficacy_sev::Array{Array{Array{Float64,1},1},1} = [[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.974]]]#### 50:5:80
-   
+    days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14],[0;7]],[[14],[0;14]]]
+    vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.92]],[[0.368],[0.48;0.736]]],
+    [[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.92]],[[0.368],[0.48;0.736]]]]#### 50:5:80
+    vac_efficacy_symp::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.332],[0.66;0.94]]],
+    [[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.332],[0.66;0.94]]]] #### 50:5:80
+    vac_efficacy_sev::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.974]]],
+    [[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.974]]]]#### 50:5:80
+    
+
 
     time_change::Int64 = 999## used to calibrate the model
     how_long::Int64 = 1## used to calibrate the model
@@ -469,12 +474,12 @@ function vac_update(x::Human)
     
     if x.vac_status == 1
         #x.index_day == 2 && error("saiu com indice 2")
-        if x.days_vac == p.days_to_protection[x.vac_status][1]#14
+        if x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][1]#14
             x.protected = 1
-            x.index_day = min(length(p.days_to_protection[x.vac_status]),x.index_day+1)
-        elseif x.days_vac == p.days_to_protection[x.vac_status][x.index_day]#14
+            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
+        elseif x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][x.index_day]#14
             x.protected = x.index_day
-            x.index_day = min(length(p.days_to_protection[x.vac_status]),x.index_day+1)
+            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
         end
         if !x.relaxed
             x.relaxed = p.relaxed &&  x.vac_status >= p.status_relax && x.days_vac >= p.relax_after ? true : false
@@ -482,13 +487,13 @@ function vac_update(x::Human)
         x.days_vac += 1
 
     elseif x.vac_status == 2
-        if x.days_vac == p.days_to_protection[x.vac_status][1]#0
+        if x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][1]#0
             x.protected = 1
-            x.index_day = min(length(p.days_to_protection[x.vac_status]),x.index_day+1)
+            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
 
-        elseif x.days_vac == p.days_to_protection[x.vac_status][x.index_day]#7
+        elseif x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][x.index_day]#7
             x.protected = x.index_day
-            x.index_day = min(length(p.days_to_protection[x.vac_status]),x.index_day+1)
+            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
         end
         if !x.relaxed
             x.relaxed = p.relaxed &&  x.vac_status >= p.status_relax && x.days_vac >= p.relax_after ? true : false
@@ -934,9 +939,9 @@ function move_to_latent(x::Human)
     g = findfirst(y-> y >= x.age, age_thres)
 
     if x.recovered
-        auxiliar = (1-p.vac_efficacy_symp[1][2][end])
+        auxiliar = (1-p.vac_efficacy_symp[1][1][2][end])
     else
-        aux = x.vac_status*x.protected > 0 ? p.vac_efficacy_symp[x.strain][x.vac_status][x.protected] : 0.0
+        aux = x.vac_status*x.protected > 0 ? p.vac_efficacy_symp[x.vaccine_n][x.strain][x.vac_status][x.protected] : 0.0
         auxiliar = (1-aux)
     end
  
@@ -995,9 +1000,9 @@ function move_to_pre(x::Human)
 
 
     if x.recovered
-        auxiliar = (1-p.vac_efficacy_sev[1][2][end])
+        auxiliar = (1-p.vac_efficacy_sev[1][1][2][end])
     else
-        aux = x.vac_status*x.protected > 0 ? p.vac_efficacy_sev[x.strain][x.vac_status][x.protected] : 0.0
+        aux = x.vac_status*x.protected > 0 ? p.vac_efficacy_sev[x.vaccine_n][x.strain][x.vac_status][x.protected] : 0.0
         auxiliar = (1-aux)
     end
 
@@ -1447,7 +1452,7 @@ function dyntrans(sys_time, grps,sim)
                     beta = _get_betavalue(sys_time, xhealth)
                     adj_beta = 0 # adjusted beta value by strain and vaccine efficacy
                     if y.health == SUS && y.swap == UNDEF
-                        aux = y.vac_status*y.protected > 0 ? p.vac_efficacy_inf[x.strain][y.vac_status][y.protected] : 0.0
+                        aux = y.vac_status*y.protected > 0 ? p.vac_efficacy_inf[y.vaccine_n][x.strain][y.vac_status][y.protected] : 0.0
                         adj_beta = beta*(1-aux)
                     elseif (x.strain in (3,4,6) && y.health in (REC, REC2, REC5) && y.swap == UNDEF)
                         adj_beta = beta*(p.reduction_recovered) #0.21
