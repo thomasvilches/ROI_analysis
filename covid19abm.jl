@@ -50,11 +50,11 @@ end
     β = 0.0345       
     seasonal::Bool = false ## seasonal betas or not
     popsize::Int64 = 100000
-    prov::Symbol = :mississippi
+    prov::Symbol = :newyorkcity
     calibration::Bool = false
     calibration2::Bool = false 
     start_several_inf::Bool = true
-    modeltime::Int64 = 332
+    modeltime::Int64 = 435
     initialinf::Int64 = 20
     initialhi::Int64 = 0 ## initial herd immunity, inserts number of REC individuals
     τmild::Int64 = 0 ## days before they self-isolate for mild cases
@@ -78,21 +78,13 @@ end
     nstrains::Int16 = 6
     
     #the cap for coverage should be 90% for 65+; 95% for HCW; 80% for 50-64; 60% for 16-49; and then 50% for 12-15 (starting from June 1).
-
-    hcw_vac_comp::Float64 = 0.95
-    hcw_prop::Float64 = 0.05 #prop que é trabalhador da saude
-    
-    eld_comp::Float64 = 0.95
-    old_adults::Float64 = 0.95
-    young_adults::Float64 = 0.8
-    kid_comp::Float64 = 0.8
     #comor_comp::Float64 = 0.7 #prop comorbidade tomam
 
     
     vaccinating::Bool = true #vaccinating?
     drop_rate::Float64 = 0.0 #probability of not getting second dose
     fixed_cov::Float64 = 0.4 #coverage of population
-    pfizer_proportion::Float64 = 1.0
+    
     red_risk_perc::Float64 = 1.0 #relative isolation in vaccinated individuals
     reduction_protection::Float64 = 0.0 #reduction in protection against infection
     extra_dose::Bool = false #if it is turned on, extradoses are given to general population
@@ -136,17 +128,25 @@ end
     strain_ef_red4::Float64 = 0.8 #reduction in efficacy against third strain
     mortality_inc::Float64 = 1.3 #The mortality increase when infected by strain 2
 
-
+    pfizer_proportion::Float64 = 0.64
     vac_period::Array{Int64,1} = [21;28]
     #=------------ Vaccine Efficacy ----------------------------=#
     days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14],[0;7]],[[14],[0;14]]]
-    vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.92]],[[0.368],[0.48;0.736]]],
-    [[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.92]],[[0.368],[0.48;0.736]]]]#### 50:5:80
+    vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.861]],[[0.368],[0.48;0.736]]],
+    [[[0.61],[0.61,0.935]],[[0.56],[0.56,0.86]],[[0.488],[0.488;0.745]],[[0.496],[0.496,0.76]],[[0.61],[0.61,0.935]],[[0.488],[0.488;0.745]]]]#### 50:5:80
+
     vac_efficacy_symp::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.332],[0.66;0.94]]],
-    [[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.332],[0.66;0.94]]]] #### 50:5:80
+    [[[0.921],[0.921,0.941]],[[0.88],[0.88,0.91]],[[0.332],[0.66;0.94]],[[0.68],[0.68,0.70]],[[0.921],[0.921,0.941]],[[0.332],[0.66;0.94]]]] #### 50:5:80
+
     vac_efficacy_sev::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.974]]],
-    [[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.974]]]]#### 50:5:80
+    [[[0.921],[0.921,1.0]],[[0.816],[0.816,0.957]],[[0.34],[0.68;0.974]],[[0.781],[0.781,0.916]],[[0.921],[0.921,1.0]],[[0.34],[0.68;0.974]]]]#### 50:5:80
     
+    #= 
+        days_to_protection_m::Array{Array{Int64,1},1} = [[14],[14]]
+        vac_efficacy_inf_m::Array{Array{Array{Float64,1},1},1} = [[[0.61],[0.935]],[[0.56],[0.86]],[[0.496],[0.76]]] #### 50:5:80
+        vac_efficacy_symp_m::Array{Array{Array{Float64,1},1},1} =[[[0.921],[0.941]],[[0.88],[0.91]],[[0.68],[0.70]]]#### 50:5:80
+        vac_efficacy_sev_m::Array{Array{Array{Float64,1},1},1} = [[[0.921],[1.0]],[[0.816],[0.957]],[[0.781],[0.916]]] #### 50:5:806,
+    =#
 
 
     time_change::Int64 = 999## used to calibrate the model
@@ -163,7 +163,7 @@ end
     status_relax::Int16 = 2
     relax_after::Int64 = 1
 
-    day_inital_vac::Int64 = 107 ###this must match to the matrices in matrice code
+    day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
     day_final_vac::Int64 = 332
     vac_limiar::Float64 = 0.74
     α::Float64 = 1.0
@@ -191,7 +191,7 @@ Base.show(io::IO, ::MIME"text/plain", z::Human) = dump(z)
 const humans = Array{Human}(undef, 0) 
 const p = ModelParameters()  ## setup default parameters
 const agebraks = @SVector [0:4, 5:19, 20:49, 50:64, 65:99]
-const agebraks_vac = @SVector [12:15, 16:17, 18:24, 25:39, 40:49, 50:64, 65:74, 75:99]
+const agebraks_vac = @SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
 const BETAS = Array{Float64, 1}(undef, 0) ## to hold betas (whether fixed or seasonal), array will get resized
 const ct_data = ct_data_collect()
 export ModelParameters, HEALTH, Human, humans, BETAS
@@ -199,6 +199,7 @@ export ModelParameters, HEALTH, Human, humans, BETAS
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
     hmatrix,hh1,hh2,hh3,hh4 = main(ip,simnum)            
+
 
     ct_numbers = (ct_data.total_symp_id, ct_data.totaltrace, ct_data.totalisolated, 
                     ct_data.iso_sus, ct_data.iso_lat, ct_data.iso_asymp, ct_data.iso_symp)
@@ -420,7 +421,7 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
             x.vac_status = 1
             x.index_day = 1
     
-            x.vaccine = rand(rng) <= p.pfizer_proportion ? :pfizer : :moderna
+            x.vaccine = rand(rng) <= p.pfizer_proportion || x.age < 18 ? :pfizer : :moderna
             x.vaccine_n = x.vaccine == :pfizer ? 1 : 2
             total_given += 1
         end
@@ -474,12 +475,12 @@ function vac_update(x::Human)
     
     if x.vac_status == 1
         #x.index_day == 2 && error("saiu com indice 2")
-        if x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][1]#14
+        if x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][1]#14
             x.protected = 1
-            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
-        elseif x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][x.index_day]#14
+            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
+        elseif x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][x.index_day]#14
             x.protected = x.index_day
-            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
+            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
         end
         if !x.relaxed
             x.relaxed = p.relaxed &&  x.vac_status >= p.status_relax && x.days_vac >= p.relax_after ? true : false
@@ -487,13 +488,13 @@ function vac_update(x::Human)
         x.days_vac += 1
 
     elseif x.vac_status == 2
-        if x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][1]#0
+        if x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][1]#0
             x.protected = 1
-            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
+            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
 
-        elseif x.days_vac == p.days_to_protection[x.vaccine][x.vac_status][x.index_day]#7
+        elseif x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][x.index_day]#7
             x.protected = x.index_day
-            x.index_day = min(length(p.days_to_protection[x.vaccine][x.vac_status]),x.index_day+1)
+            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
         end
         if !x.relaxed
             x.relaxed = p.relaxed &&  x.vac_status >= p.status_relax && x.days_vac >= p.relax_after ? true : false
