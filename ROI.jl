@@ -32,15 +32,19 @@ using Bootstrap
     cost_loss_day = 100.0 ##GDP based
 
     ##
-    lost_days_symptomatic = 14.0 ##we must be carefull
+    lost_days_symptomatic = 10.0 ##we must be carefull
     hosp_daily_cost = 1000.0
     icu_daily_cost = 2000.0
+
+    hosp_cost = 66265.521
+    icu_cost = 215655.624
+
     prop_long_treatment = 0.5
     long_covid_treatment_cost = 10000.0
     disability_weight = 0.5
 
     number_of_outpatient_visits = 1.0
-    cost_visit = 100.0
+    cost_visit = 2481.153
 end
 
 const p_roi =  ROIParameters()
@@ -181,14 +185,15 @@ indirect_cost_vaccination = p_roi.loss_vac_day*p_roi.cost_loss_day*(df.vaccines_
 ### Cost of COVID-19 illness and hospitalization
 ###first of all, we need to make sure that hospitalization is in the right scale, that is, the status quo and the data match
 
-data_file = "incidence_$(p_roi.state)"
+data_file = "../incidence_$(p_roi.state).csv"
 
-data = CSV.read(data_file) #make sure it is in a CSV file
+data = CSV.read(data_file,DataFrame) #make sure it is in a CSV file
+
 total_hosp_data = sum(data.inc_hosp) ###calculate the total number of hospitalization from data. make sure the collumn name is right (when we get the data)
 mean_hosp_simulation = mean(df_sq.total_hosp+df_sq.total_icu) #calculate the average number of hospitalization
 factor_hosp = total_hosp_data/mean_hosp_simulation
 
-total_death_data = sum(data.inc_death) ###calculate the total number of hospitalization from data. make sure the collumn name is right (when we get the data)
+total_death_data = sum(data.inc_deaths) ###calculate the total number of hospitalization from data. make sure the collumn name is right (when we get the data)
 mean_death_simulation = mean(df_sq.total_deaths) #calculate the average number of hospitalization
 factor_death = total_death_data/mean_death_simulation
 
@@ -196,18 +201,22 @@ factor_death = total_death_data/mean_death_simulation
 ### Let's calculate the illness / disease cost for both scenarios
 df = df_sq
 total_illness_cost_sq = (df.total_symp+df.total_sev)*p_roi.number_of_outpatient_visits*(p_roi.cost_visit+p_roi.transportation_cost) ##medical visit
-total_illness_cost_sq += p_roi.hosp_daily_cost*df.total_days_hosp*factor_hosp+p_roi.icu_daily_cost*df.total_days_icu*factor_hosp ##hospital admission
-total_illness_cost_sq += p_roi.prop_long_treatment*p_roi.long_covid_treatment_cost*(df.total_sev+df.total_symp-df.total_deaths) ###long treatment
-total_illness_cost_sq += df.years_w_lost*365*p_roi.cost_loss_day #cost for years of work 
-total_illness_cost_sq += (df.total_symp_w+df.total_sev_w)*p_roi.days_iso*p_roi.cost_loss_day # cost for symptomatic isolation
-total_illness_cost_sq += (df.total_symp_w+df.total_sev_w)*p_roi.prop_long_treatment*p_roi.disability_weight*
+#total_illness_cost_sq += p_roi.hosp_daily_cost*df.total_days_hosp*factor_hosp+p_roi.icu_daily_cost*df.total_days_icu*factor_hosp ##hospital admission
+total_illness_cost_sq += p_roi.hosp_cost*df.total_hosp*factor_hosp+p_roi.icu_cost*df.total_icu*factor_hosp ##hospital admission
+
+#total_illness_cost_sq += p_roi.prop_long_treatment*p_roi.long_covid_treatment_cost*(df.total_sev+df.total_symp-df.total_deaths) ###long treatment
+#total_illness_cost_sq += df.years_w_lost*365*p_roi.cost_loss_day #cost for years of work 
+total_illness_cost_sq += (df.total_symp_w+df.total_sev_w)*p_roi.lost_days_symptomatic*p_roi.cost_loss_day # cost for symptomatic isolation
+##need finish
+#total_illness_cost_sq += (df.total_symp_w+df.total_sev_w)*p_roi.prop_long_treatment*p_roi.disability_weight*
 
 ### Let's calculate the illness / disease cost for both scenarios
 df = df_cf
 total_illness_cost_cf = (df.total_symp+df.total_sev)*p_roi.number_of_outpatient_visits*(p_roi.cost_visit+p_roi.transportation_cost) #medical visit
 total_illness_cost_cf += p_roi.hosp_daily_cost*df.total_days_hosp*factor_hosp+p_roi.icu_daily_cost*df.total_days_icu*factor_hosp #hospitalization
-total_illness_cost_cf += p_roi.prop_long_treatment*p_roi.long_covid_treatment_cost*(df.total_sev+df.total_symp-df.total_deaths) #long treatment
-total_illness_cost_cf += df.years_w_lost*365*p_roi.cost_loss_day #cost for years of work 
-total_illness_cost_cf += (df.total_symp_w+df.total_sev_w)*p_roi.days_iso*p_roi.cost_loss_day # cost for symptomatic isolation
-total_illness_cost_cf += (df.total_symp_w+df.total_sev_w)*p_roi.prop_long_treatment*p_roi.disability_weight*
+#total_illness_cost_cf += p_roi.prop_long_treatment*p_roi.long_covid_treatment_cost*(df.total_sev+df.total_symp-df.total_deaths) #long treatment
+#total_illness_cost_cf += df.years_w_lost*365*p_roi.cost_loss_day #cost for years of work 
+total_illness_cost_cf += (df.total_symp_w+df.total_sev_w)*p_roi.lost_days_symptomatic*p_roi.cost_loss_day # cost for symptomatic isolation
+#need finish
+#total_illness_cost_cf += (df.total_symp_w+df.total_sev_w)*p_roi.prop_long_treatment*p_roi.disability_weight*
 
