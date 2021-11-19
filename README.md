@@ -18,5 +18,6 @@ The branch `NYC` has data for NYC and the model is calibrated.
 
 - Moderna and Pfizer vaccines were implemented. We are ignoring Gamma and Beta.
 - New age groups according to NYC vaccination data.
+- Jensen was implemented. We need to set up the vaccine efficacy against variants.
 
-**starting now** - I am implementing the third vaccine (Jensen) and the new features to the output of ROI analysis.
+**Still Organizing ROI**
