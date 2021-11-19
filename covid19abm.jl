@@ -209,7 +209,7 @@ function runsim(simnum, ip::ModelParameters)
     # get simulation age groups
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
     #ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
-    ags = map(x-> x.age in 15:65 ? 1 : 2,humans)
+    ags = map(x-> x.age in 18:65 ? 1 : 2,humans)
     
     all = _collectdf(hmatrix)
     spl = _splitstate(hmatrix, ags)
@@ -270,11 +270,11 @@ function runsim(simnum, ip::ModelParameters)
     aux =  findall(x-> x.vaccine_n == 3, humans)
     n_jensen = length(aux)
 
-    aux =  findall(x-> x.vaccine_n == 2 && x.age in 15:65, humans)
+    aux =  findall(x-> x.vaccine_n == 2 && x.age in 18:65, humans)
     n_moderna_w = length(aux)
-    aux =  findall(x-> x.vaccine_n == 1 && x.age in 15:65, humans)
+    aux =  findall(x-> x.vaccine_n == 1 && x.age in 18:65, humans)
     n_pfizer_w = length(aux)
-    aux =  findall(x-> x.vaccine_n == 3 && x.age in 15:65, humans)
+    aux =  findall(x-> x.vaccine_n == 3 && x.age in 18:65, humans)
     n_jensen_w = length(aux)
 
     aux =  findall(x-> x.vaccine_n == 2 && x.vac_status == 2, humans)
@@ -284,16 +284,16 @@ function runsim(simnum, ip::ModelParameters)
     aux =  findall(x-> x.vaccine_n == 3 && x.vac_status == 2, humans)
     n_jensen_2 = length(aux)
 
-    aux =  findall(x-> x.vaccine_n == 2 && x.age in 15:65 && x.vac_status == 2, humans)
+    aux =  findall(x-> x.vaccine_n == 2 && x.age in 18:65 && x.vac_status == 2, humans)
     n_moderna_w_2 = length(aux)
-    aux =  findall(x-> x.vaccine_n == 1 && x.age in 15:65 && x.vac_status == 2, humans)
+    aux =  findall(x-> x.vaccine_n == 1 && x.age in 18:65 && x.vac_status == 2, humans)
     n_pfizer_w_2 = length(aux)
-    aux =  findall(x-> x.vaccine_n == 3 && x.age in 15:65 && x.vac_status == 2, humans)
+    aux =  findall(x-> x.vaccine_n == 3 && x.age in 18:65 && x.vac_status == 2, humans)
     n_jensen_w_2 = length(aux)
 
     aux = findall(x-> x.health == DED,humans)
 
-    years_w_lost = sum(map(y-> max(0,65-max(humans[y].age,15)),aux))
+    years_w_lost = sum(map(y-> max(0,65-max(humans[y].age,18)),aux))
 
     return (a=all, g1=ag1,# g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,   
     R01 = R01,
