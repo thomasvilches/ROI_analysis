@@ -157,12 +157,12 @@ end
 
 p.state = "newyorkcity"
 
-folder = "./results_$(p.state)_1" ##supposing index 1 for status quo scenario with vaccination
+folder = "./results_1_$(p.state)" ##supposing index 1 for status quo scenario with vaccination
 df_sq = simulation_outcome(folder)
 
 
 #### No vaccination scenario
-folder = "./results_$(p.state)_2" ##supposing index 1 for status quo scenario with vaccination
+folder = "./results_2_$(p.state)" ##supposing index 2 for counterfactual scenario without vaccination
 df_cf = simulation_outcome(folder)
 
 
@@ -204,3 +204,4 @@ total_illness_cost_cf = (df.total_symp+df.total_sev)*p.number_of_outpatient_visi
 total_illness_cost_cf += p.hosp_daily_cost*df.total_days_hosp*factor_hosp+p.icu_daily_cost*df.total_days_icu*factor_hosp
 total_illness_cost_cf += p.prop_long_treatment*p.long_covid_treatment_cost*(df.total_sev+df.total_symp-df.total_deaths)
 total_illness_cost_cf += df_sq.years_w_lost*365*p.cost_loss_day #cost for years of work 
+

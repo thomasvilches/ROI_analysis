@@ -128,7 +128,7 @@ end
     strain_ef_red4::Float64 = 0.8 #reduction in efficacy against third strain
     mortality_inc::Float64 = 1.3 #The mortality increase when infected by strain 2
 
-    pfizer_proportion::Float64 = 0.64
+    vaccine_proportion::Vector{Float64} = [0.59;0.33;0.08]
     vac_period::Array{Int64,1} = [21;28;999]
     #=------------ Vaccine Efficacy ----------------------------=#
     days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14],[0;7]],[[14],[0;14]],[[14]]]
@@ -204,24 +204,26 @@ function runsim(simnum, ip::ModelParameters)
     hmatrix,hh1,hh2,hh3,hh4 = main(ip,simnum)            
 
 
-    ct_numbers = (ct_data.total_symp_id, ct_data.totaltrace, ct_data.totalisolated, 
-                    ct_data.iso_sus, ct_data.iso_lat, ct_data.iso_asymp, ct_data.iso_symp)
+    
     ###use here to create the vector of comorbidity
     # get simulation age groups
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
-    ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
+    #ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
+    ags = map(x-> x.age in 15:65 ? 1 : 2,humans)
+    
     all = _collectdf(hmatrix)
     spl = _splitstate(hmatrix, ags)
     ag1 = _collectdf(spl[1])
-    ag2 = _collectdf(spl[2])
+    #=ag1 = _collectdf(spl[1])
+     ag2 = _collectdf(spl[2])
     ag3 = _collectdf(spl[3])
     ag4 = _collectdf(spl[4])
     ag5 = _collectdf(spl[5])
-    ag6 = _collectdf(spl[6])
-    insertcols!(all, 1, :sim => simnum); insertcols!(ag1, 1, :sim => simnum); insertcols!(ag2, 1, :sim => simnum); 
+    ag6 = _collectdf(spl[6]) =#
+    insertcols!(all, 1, :sim => simnum); insertcols!(ag1, 1, :sim => simnum);#= insertcols!(ag2, 1, :sim => simnum); 
     insertcols!(ag3, 1, :sim => simnum); insertcols!(ag4, 1, :sim => simnum); insertcols!(ag5, 1, :sim => simnum);
     insertcols!(ag6, 1, :sim => simnum);
-
+ =#
     
     R01 = zeros(Float64,size(hh1,1))
 
@@ -260,10 +262,44 @@ function runsim(simnum, ip::ModelParameters)
     coverage12 = length(findall(x-> x.vac_status >= 1,humans))/p.popsize
     coverage22 = length(findall(x-> x.vac_status == 2,humans))/p.popsize
 
-    return (a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,   
-    iniiso = ct_data.totalisolated,
+    #### let's count the number of vaccines for each vaccine thaat was given
+    aux =  findall(x-> x.vaccine_n == 2, humans)
+    n_moderna = length(aux)
+    aux =  findall(x-> x.vaccine_n == 1, humans)
+    n_pfizer = length(aux)
+    aux =  findall(x-> x.vaccine_n == 3, humans)
+    n_jensen = length(aux)
+
+    aux =  findall(x-> x.vaccine_n == 2 && x.age in 15:65, humans)
+    n_moderna_w = length(aux)
+    aux =  findall(x-> x.vaccine_n == 1 && x.age in 15:65, humans)
+    n_pfizer_w = length(aux)
+    aux =  findall(x-> x.vaccine_n == 3 && x.age in 15:65, humans)
+    n_jensen_w = length(aux)
+
+    aux =  findall(x-> x.vaccine_n == 2 && x.vac_status == 2, humans)
+    n_moderna_2 = length(aux)
+    aux =  findall(x-> x.vaccine_n == 1 && x.vac_status == 2, humans)
+    n_pfizer_2 = length(aux)
+    aux =  findall(x-> x.vaccine_n == 3 && x.vac_status == 2, humans)
+    n_jensen_2 = length(aux)
+
+    aux =  findall(x-> x.vaccine_n == 2 && x.age in 15:65 && x.vac_status == 2, humans)
+    n_moderna_w_2 = length(aux)
+    aux =  findall(x-> x.vaccine_n == 1 && x.age in 15:65 && x.vac_status == 2, humans)
+    n_pfizer_w_2 = length(aux)
+    aux =  findall(x-> x.vaccine_n == 3 && x.age in 15:65 && x.vac_status == 2, humans)
+    n_jensen_w_2 = length(aux)
+
+    aux = findall(x-> x.health == DED,humans)
+
+    years_w_lost = sum(map(y-> max(0,65-max(humans[y].age,15)),aux))
+
+    return (a=all, g1=ag1,# g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,   
     R01 = R01,
-    R02 = R02, cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22)
+    R02 = R02, cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,
+    n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
+    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,years_w_lost)
 end
 export runsim
 
@@ -418,14 +454,16 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
 
         remaining_doses += (vac_rate_1[time_pos,i] - l2)
 
+        
+
         for j = 1:l2
             x = humans[vac_ind[i][pos[j]]]
             x.days_vac = 0
             x.vac_status = 1
             x.index_day = 1
-    
-            x.vaccine = rand(rng) <= p.pfizer_proportion || x.age < 18 ? :pfizer : :moderna
-            x.vaccine_n = x.vaccine == :pfizer ? 1 : 2
+            x.vaccine_n = x.age < 18 ? 1 : sample(rng,[1,2,3], Weights(p.vaccine_proportion))
+            x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
+            
             total_given += 1
         end
 
@@ -452,8 +490,9 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
                 x.days_vac = 0
                 x.vac_status = 1
                 x.index_day = 1
-                x.vaccine = rand(rng) <= p.pfizer_proportion || x.age < 18 ? :pfizer : :moderna
-                x.vaccine_n = x.vaccine == :pfizer ? 1 : 2
+                x.vaccine_n = x.age < 18 ? 1 : sample([1,2,3], Weights(p.vaccine_proportion))
+                x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
+            
                 total_given += 1
             elseif x.vac_status == 1
                 x.days_vac = 0

@@ -41,14 +41,14 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     #writedlm("$(folderprefix)/ctnumbers.dat", [cdr[i].ct_numbers for i = 1:nsims])    
     ## stack the sims together
     allag = vcat([cdr[i].a  for i = 1:nsims]...)
-    ag1 = vcat([cdr[i].g1 for i = 1:nsims]...)
-    ag2 = vcat([cdr[i].g2 for i = 1:nsims]...)
+    working = vcat([cdr[i].g1 for i = 1:nsims]...)
+    #= ag2 = vcat([cdr[i].g2 for i = 1:nsims]...)
     ag3 = vcat([cdr[i].g3 for i = 1:nsims]...)
     ag4 = vcat([cdr[i].g4 for i = 1:nsims]...)
     ag5 = vcat([cdr[i].g5 for i = 1:nsims]...)
-    ag6 = vcat([cdr[i].g6 for i = 1:nsims]...)
+    ag6 = vcat([cdr[i].g6 for i = 1:nsims]...) =#
     #mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6)
-    mydfs = Dict("all" => allag)
+    mydfs = Dict("all" => allag, "working"=>working)
     
     ## save at the simulation and time level
     ## to ignore for now: miso, iiso, mild 
@@ -56,12 +56,14 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     #c2 = Symbol.((:LAT, :ASYMP, :INF, :PRE, :MILD,:IISO, :HOS, :ICU, :DED), :_PREV)
     
     c1 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2,:LAT3, :HOS3, :ICU3, :DED3,:LAT4, :HOS4, :ICU4, :DED4,:LAT5, :HOS5, :ICU5, :DED5,:LAT6, :HOS6, :ICU6, :DED6), :_INC)
+    c2 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2,:LAT3, :HOS3, :ICU3, :DED3,:LAT4, :HOS4, :ICU4, :DED4,:LAT5, :HOS5, :ICU5, :DED5,:LAT6, :HOS6, :ICU6, :DED6), :_PREV)
+    
     #c2 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2), :_PREV)
     for (k, df) in mydfs
         println("saving dataframe sim level: $k")
         # simulation level, save file per health status, per age group
-        #for c in vcat(c1..., c2...)
-        for c in vcat(c1...)
+        for c in vcat(c1..., c2...)
+        #for c in vcat(c1...)
         #for c in vcat(c2...)
             udf = unstack(df, :time, :sim, c) 
             fn = string("$(folderprefix)/simlevel_", lowercase(string(c)), "_", k, ".dat")
@@ -87,18 +89,44 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     
     writedlm(string(folderprefix,"/init_iso.dat"),[cdr[i].iniiso for i=1:nsims])
     writedlm(string(folderprefix,"/cov.dat"),[cov1 cov2 cov12 cov22])
+
+    vac_m = [cdr[i].n_moderna for i=1:nsims]
+    vac_m_w = [cdr[i].n_moderna_w for i=1:nsims]
+
+    vac_p = [cdr[i].n_pfizer for i=1:nsims]
+    vac_p_w = [cdr[i].n_pfizer_w for i=1:nsims]
+
+    vac_j = [cdr[i].n_jensen for i=1:nsims]
+    vac_j_w = [cdr[i].n_jensen_w for i=1:nsims]
+
+    vac_m_2 = [cdr[i].n_moderna_2 for i=1:nsims]
+    vac_m_w_2 = [cdr[i].n_moderna_w_2 for i=1:nsims]
+
+    vac_p_2 = [cdr[i].n_pfizer_2 for i=1:nsims]
+    vac_p_w_2 = [cdr[i].n_pfizer_w_2 for i=1:nsims]
+
+    vac_j_2 = [cdr[i].n_jensen_2 for i=1:nsims]
+    vac_j_w_2 = [cdr[i].n_jensen_w_2 for i=1:nsims]
+
+    writedlm(string(folderprefix,"/vaccine_all.dat"),[vac_p vac_m vac_j vac_p_2 vac_m_2 vac_j_2])
+    writedlm(string(folderprefix,"/vaccine_working.dat"),[vac_p_w vac_m_w vac_j_w vac_p_w_2 vac_m_w_2 vac_j_w_2])
+
+    writedlm(string(folderprefix,"/year_of_work.dat"),[cdr[i].years_w_lost for i=1:nsims])
+
     return mydfs
 end
 
 
-function create_folder(ip::cv.ModelParameters,vac="none",province="us")
+function create_folder(ip::cv.ModelParameters,vac="none",province="us",calibrating = true)
     
     #RF = string("heatmap/results_prob_","$(replace(string(ip.β), "." => "_"))","_vac_","$(replace(string(ip.vaccine_ef), "." => "_"))","_herd_immu_","$(ip.herd)","_$strategy","cov_$(replace(string(ip.cov_val)))") ## 
     main_folder = "/data/thomas-covid/ROI"
     #main_folder = "."
-   
-    RF = string(main_folder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_herd_immu_","$(ip.herd)","_$vac","_$(ip.file_index)_$(province)") ##  
-   
+    if calibrating
+        RF = string(main_folder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_herd_immu_","$(ip.herd)","_$vac","_$(ip.file_index)_$(province)") ##  
+    else
+        RF = string(main_folder,"/results_prob_$(ip.file_index)_$(province)") ##  
+    end
     if !Base.Filesystem.isdir(RF)
         Base.Filesystem.mkpath(RF)
     end
@@ -107,7 +135,7 @@ end
 
 
 
-function run_param_scen_cal(b::Float64,province::String="us",h_i::Int64 = 0,ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,when2::Int64=1,when3::Int64 = 1,when4::Int64=1,when5::Int64=1,when6::Int64=1,red::Float64 = 0.0,index::Int64 = 0,dosis::Int64=3,ta::Int64 = 999,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,scen::String="statuscuo",alpha::Float64 = 1.0,alpha2::Float64 = 0.0,alpha3::Float64 = 1.0,nsims::Int64=500)
+function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="us",h_i::Int64 = 0,ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,when2::Int64=1,when3::Int64 = 1,when4::Int64=1,when5::Int64=1,when6::Int64=1,red::Float64 = 0.0,index::Int64 = 0,dosis::Int64=3,ta::Int64 = 999,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,scen::String="statuscuo",alpha::Float64 = 1.0,alpha2::Float64 = 0.0,alpha3::Float64 = 1.0,nsims::Int64=500)
     
     
     #b = bd[h_i]
@@ -123,7 +151,7 @@ function run_param_scen_cal(b::Float64,province::String="us",h_i::Int64 = 0,ic1:
     α2 = $alpha2,
     α3 = $alpha3)
 
-    folder = create_folder(ip,"pfizer",province)
+    folder = create_folder(ip,"pfizer",province,calibrating)
 
     #println("$v_e $(ip.vaccine_ef)")
     run(ip,nsims,folder)
