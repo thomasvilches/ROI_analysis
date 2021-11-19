@@ -14,8 +14,9 @@ The features and instruction will be added later when the code is ready.
 
 ## New York City data in Nov 2021
 
-I am creating a branch `NYC` where I will be implementing
+The branch `NYC` has data for NYC and the model is calibrated. 
 
-- Moderna and Pfizer vaccines.
--- Moderna was added. The Moderna's efficacies were implemented, For Gamma/Beta it is not decided.
-- New age groups according to NYC data.
+- Moderna and Pfizer vaccines were implemented. We are ignoring Gamma and Beta.
+- New age groups according to NYC vaccination data.
+
+**starting now** - I am implementing the third vaccine (Jensen) and the new features to the output of ROI analysis.
