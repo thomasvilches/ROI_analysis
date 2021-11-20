@@ -144,13 +144,6 @@ end
     vac_efficacy_sev::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.974]]],
     [[[0.921],[0.921,1.0]],[[0.816],[0.816,0.957]],[[0.34],[0.68;0.974]],[[0.781],[0.781,0.916]],[[0.921],[0.921,1.0]],[[0.34],[0.68;0.974]]],#### 50:5:80
     [[[0.921]],[[0.816]],[[0.34]],[[0.781]],[[0.921]],[[0.34]]]]#### 50:5:80
-    
-    #= 
-        days_to_protection_m::Array{Array{Int64,1},1} = [[14],[14]]
-        vac_efficacy_inf_m::Array{Array{Array{Float64,1},1},1} = [[[0.61],[0.935]],[[0.56],[0.86]],[[0.496],[0.76]]] #### 50:5:80
-        vac_efficacy_symp_m::Array{Array{Array{Float64,1},1},1} =[[[0.921],[0.941]],[[0.88],[0.91]],[[0.68],[0.70]]]#### 50:5:80
-        vac_efficacy_sev_m::Array{Array{Array{Float64,1},1},1} = [[[0.921],[1.0]],[[0.816],[0.957]],[[0.781],[0.916]]] #### 50:5:806,
-    =#
 
 
     time_change::Int64 = 999## used to calibrate the model
@@ -170,6 +163,9 @@ end
     day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
     day_final_vac::Int64 = 332
     vac_limiar::Float64 = 0.74
+    time_vac_kids::Int64 = 215
+    using_jj::Bool = true
+
     α::Float64 = 1.0
     α2::Float64 = 0.0
     α3::Float64 = 1.0
@@ -322,6 +318,7 @@ function main(ip::ModelParameters,sim::Int64)
     vac_rate_2::Matrix{Int64} = vaccination_rate_2(sim)
     vaccination_days::Vector{Int64} = days_vac_f(size(vac_rate_1,1))
 
+    v_prop,fd_prop,sd_prop = temporal_proportion()
     #h_init::Int64 = 0
     # insert initial infected agents into the model
     # and setup the right swap function. 
@@ -347,8 +344,9 @@ function main(ip::ModelParameters,sim::Int64)
     
     time_vac::Int64 = 1
     time_pos::Int64 = 0
+    time_prop::Int64 = 1
     if p.vaccinating
-        vac_ind = vac_selection(sim)
+        vac_ind = vac_selection(sim,18)
     else
         time_vac = 9999 #this guarantees that no one will be vaccinated
     end
@@ -379,6 +377,7 @@ function main(ip::ModelParameters,sim::Int64)
             setfield!(p, :contact_change_rate, p.change_rate_values[count_change])
             count_change += 1
         end
+
         # start of day
         #println("$st")
 
@@ -389,6 +388,17 @@ function main(ip::ModelParameters,sim::Int64)
         if time_pos < length(vaccination_days) && time_vac == vaccination_days[time_pos+1]
             time_pos += 1
         end
+
+        if time_prop < length(v_prop) && st == v_prop[time_prop]
+            setfield!(p, :vaccine_proportion, fd_prop[time_prop,:])
+            setfield!(p, :vaccine_proportion_2, sd_prop[time_prop,:])
+            time_prop += 1
+        end
+
+        if p.vaccinating && st == p.time_vac_kids 
+            vac_ind = vac_selection(sim,12)
+        end
+
         time_vac += 1
         time_pos > 0 && vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2)
         
@@ -415,13 +425,13 @@ function main(ip::ModelParameters,sim::Int64)
 end
 export main
 
-function vac_selection(sim::Int64)
+function vac_selection(sim::Int64,age::Int64)
     
     
 
    
-    aux_1 = map(k-> findall(y-> y.age in k && y.age >= 12 && y.comorbidity == 1,humans),agebraks_vac)
-    aux_2 = map(k-> findall(y-> y.age in k && y.age >= 12 && y.comorbidity == 0,humans),agebraks_vac)
+    aux_1 = map(k-> findall(y-> y.age in k && y.age >= age && y.comorbidity == 1,humans),agebraks_vac)
+    aux_2 = map(k-> findall(y-> y.age in k && y.age >= age && y.comorbidity == 0,humans),agebraks_vac)
 
     v = map(x-> [aux_1[x];aux_2[x]],1:length(aux_1))
     
