@@ -19,5 +19,5 @@ The branch `NYC` has data for NYC and the model is calibrated.
 - Moderna and Pfizer vaccines were implemented. We are ignoring Gamma and Beta.
 - New age groups according to NYC vaccination data.
 - Jensen was implemented. We need to set up the vaccine efficacy against variants.
-
+- This commit is before a huge change in the vaccination process. The change will be necessary to get the right proportion of given vaccines.
 **Still Organizing ROI**

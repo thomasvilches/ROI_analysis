@@ -436,6 +436,7 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
     
     remaining_doses::Int64 = 0
     total_given::Int64 = 0
+
     for i in 1:length(vac_ind)
         pos = findall(y-> humans[y].vac_status == 1 && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[i])
         
@@ -454,8 +455,6 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         l2 = min(vac_rate_1[time_pos,i],length(pos))
 
         remaining_doses += (vac_rate_1[time_pos,i] - l2)
-
-        
 
         for j = 1:l2
             x = humans[vac_ind[i][pos[j]]]
