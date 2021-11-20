@@ -163,8 +163,8 @@ end
     day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
     day_final_vac::Int64 = 332
     vac_limiar::Float64 = 0.74
-    time_vac_kids::Int64 = 215
-    using_jj::Bool = true
+    time_vac_kids::Int64 = 253
+    using_jj::Bool = false
 
     α::Float64 = 1.0
     α2::Float64 = 0.0
@@ -198,7 +198,7 @@ export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
-    hmatrix,hh1,hh2,hh3,hh4 = main(ip,simnum)            
+    hmatrix,hh1,hh2,hh3,hh4,remaining_doses = main(ip,simnum)            
 
 
     
@@ -270,9 +270,9 @@ function runsim(simnum, ip::ModelParameters)
 
     aux =  findall(x-> x.vaccine_n == 2 && x.age in range_work, humans)
     n_moderna_w = length(aux)
-    aux =  findall(x-> x.vaccine_n == 1 && x.age in range_workk, humans)
+    aux =  findall(x-> x.vaccine_n == 1 && x.age in range_work, humans)
     n_pfizer_w = length(aux)
-    aux =  findall(x-> x.vaccine_n == 3 && x.age in range_workk, humans)
+    aux =  findall(x-> x.vaccine_n == 3 && x.age in range_work, humans)
     n_jensen_w = length(aux)
 
     aux =  findall(x-> x.vaccine_n == 2 && x.vac_status == 2, humans)
@@ -282,11 +282,11 @@ function runsim(simnum, ip::ModelParameters)
     aux =  findall(x-> x.vaccine_n == 3 && x.vac_status == 2, humans)
     n_jensen_2 = length(aux)
 
-    aux =  findall(x-> x.vaccine_n == 2 && x.age in range_workk && x.vac_status == 2, humans)
+    aux =  findall(x-> x.vaccine_n == 2 && x.age in range_work && x.vac_status == 2, humans)
     n_moderna_w_2 = length(aux)
-    aux =  findall(x-> x.vaccine_n == 1 && x.age in range_workk && x.vac_status == 2, humans)
+    aux =  findall(x-> x.vaccine_n == 1 && x.age in range_work && x.vac_status == 2, humans)
     n_pfizer_w_2 = length(aux)
-    aux =  findall(x-> x.vaccine_n == 3 && x.age in range_workk && x.vac_status == 2, humans)
+    aux =  findall(x-> x.vaccine_n == 3 && x.age in range_work && x.vac_status == 2, humans)
     n_jensen_w_2 = length(aux)
 
     aux = findall(x-> x.health == DED,humans)
@@ -297,7 +297,7 @@ function runsim(simnum, ip::ModelParameters)
     R01 = R01,
     R02 = R02, cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
-    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,years_w_lost)
+    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,years_w_lost = years_w_lost)
 end
 export runsim
 
@@ -345,6 +345,7 @@ function main(ip::ModelParameters,sim::Int64)
     time_vac::Int64 = 1
     time_pos::Int64 = 0
     time_prop::Int64 = 1
+    remaining_doses = 0
     if p.vaccinating
         vac_ind = vac_selection(sim,18)
     else
@@ -400,8 +401,9 @@ function main(ip::ModelParameters,sim::Int64)
         end
 
         time_vac += 1
-        time_pos > 0 && vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2)
-        
+        if time_pos > 0 
+            remaining_doses += vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2)
+        end
         #println([time_vac length(findall(x-> x.vac_status == 2 && x.age >= 18,humans))])
        
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
@@ -421,7 +423,7 @@ function main(ip::ModelParameters,sim::Int64)
     end
     
     
-    return hmatrix,h_init1,h_init2,h_init3, h_init4 ## return the model state as well as the age groups. 
+    return hmatrix,h_init1,h_init2,h_init3, h_init4, remaining_doses ## return the model state as well as the age groups. 
 end
 export main
 
@@ -579,6 +581,8 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
     if total_given > t
         error("vaccination")
     end
+
+    return remaining_doses
 
 end
 

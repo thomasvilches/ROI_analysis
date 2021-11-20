@@ -18,7 +18,7 @@ using DelimitedFiles
 
 #@everywhere using covid19abm
 
-addprocs(SlurmManager(250), N=8, topology=:master_worker, exeflags = "--project=.")
+addprocs(SlurmManager(500), N=17, topology=:master_worker, exeflags = "--project=.")
 @everywhere using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
 @everywhere include("covid19abm.jl")
 @everywhere const cv=covid19abm
@@ -48,7 +48,9 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     ag5 = vcat([cdr[i].g5 for i = 1:nsims]...)
     ag6 = vcat([cdr[i].g6 for i = 1:nsims]...) =#
     #mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6)
-    mydfs = Dict("all" => allag, "working"=>working)
+    #mydfs = Dict("all" => allag, "working"=>working)
+    
+    mydfs = Dict("all" => allag)
     
     ## save at the simulation and time level
     ## to ignore for now: miso, iiso, mild 
@@ -62,8 +64,8 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     for (k, df) in mydfs
         println("saving dataframe sim level: $k")
         # simulation level, save file per health status, per age group
-        for c in vcat(c1..., c2...)
-        #for c in vcat(c1...)
+        #for c in vcat(c1..., c2...)
+        for c in vcat(c1...)
         #for c in vcat(c2...)
             udf = unstack(df, :time, :sim, c) 
             fn = string("$(folderprefix)/simlevel_", lowercase(string(c)), "_", k, ".dat")
@@ -87,7 +89,6 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     cov12 = [cdr[i].cov12 for i=1:nsims]
     cov22 = [cdr[i].cov22 for i=1:nsims]
     
-    writedlm(string(folderprefix,"/init_iso.dat"),[cdr[i].iniiso for i=1:nsims])
     writedlm(string(folderprefix,"/cov.dat"),[cov1 cov2 cov12 cov22])
 
     vac_m = [cdr[i].n_moderna for i=1:nsims]

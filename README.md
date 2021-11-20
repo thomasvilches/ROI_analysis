@@ -21,8 +21,7 @@ The branch `NYC` has data for NYC and the model is calibrated.
 - Jensen was implemented. We need to set up the vaccine efficacy against variants.
 
 Huge Changes in vac_time were made. I tested and it is vaccinating properly.
-A time-varing proportion of vaccines (brand) was implemented. Also, the children vaccination was fixed. Need to set the right day for it.
-
+A time-varing proportion of vaccines (brand) was implemented.
 
 
 **Still Organizing ROI**
