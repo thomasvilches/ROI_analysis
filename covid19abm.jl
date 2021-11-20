@@ -129,6 +129,7 @@ end
     mortality_inc::Float64 = 1.3 #The mortality increase when infected by strain 2
 
     vaccine_proportion::Vector{Float64} = [0.59;0.33;0.08]
+    vaccine_proportion_2::Vector{Float64} = [0.63;0.37;0.0]
     vac_period::Array{Int64,1} = [21;28;999]
     #=------------ Vaccine Efficacy ----------------------------=#
     days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14],[0;7]],[[14],[0;14]],[[14]]]
@@ -391,7 +392,7 @@ function main(ip::ModelParameters,sim::Int64)
         time_vac += 1
         time_pos > 0 && vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2)
         
-        println([time_vac length(findall(x-> x.vac_status == 2 && x.age >= 18,humans))])
+        #println([time_vac length(findall(x-> x.vac_status == 2 && x.age >= 18,humans))])
        
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
         dyntrans(st, grps,sim)
@@ -437,71 +438,129 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
     remaining_doses::Int64 = 0
     total_given::Int64 = 0
 
+    ### Let's calculate the number of available doses per vaccine type
+    doses_first::Vector{Int64} = Int.(round.(sum(vac_rate_1[time_pos,:])*(p.vaccine_proportion/sum(p.vaccine_proportion))))
+    doses_second::Vector{Int64} = Int.(round.(sum(vac_rate_2[time_pos,:])*(p.vaccine_proportion_2/sum(p.vaccine_proportion_2))))
+
+    if sum(doses_first) < sum(vac_rate_1[time_pos,:])
+        r = rand(1:3)
+        doses_first[r] += 1
+    elseif sum(doses_first) > sum(vac_rate_1[time_pos,:])
+        rr=findall(y-> y>0,doses_first)
+        r = rand(rr)
+        doses_first[r] -= 1
+    end
+
+    if sum(doses_second) < sum(vac_rate_2[time_pos,:])
+        r = rand(1:2)
+        doses_second[r] += 1
+    elseif sum(doses_second) > sum(vac_rate_2[time_pos,:])
+        rr=findall(y-> y>0,doses_second)
+        r = rand(rr)
+        doses_first[r] -= 1
+    end
+
     for i in 1:length(vac_ind)
         pos = findall(y-> humans[y].vac_status == 1 && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[i])
         
         l1 = min(vac_rate_2[time_pos,i],length(pos))
-        remaining_doses += (vac_rate_2[time_pos,i] - l1)
+        remaining_doses += (vac_rate_2[time_pos,i])
+
         for j = 1:l1
-            x = humans[vac_ind[i][pos[j]]]
+            if doses_second[1] > 0 && doses_second[2] > 0 
+                pos2 = pos
+            elseif doses_second[1] > 0 
+                pos2 = filter(x-> humans[vac_ind[i][x]].vaccine_n == 1,pos)
+            elseif doses_second[2] > 0 
+                pos2 = filter(x-> humans[vac_ind[i][x]].vaccine_n == 2,pos)
+            else
+                error("missing doses")
+            end
+
+            if length(pos2) > 0 
+                r = rand(pos2)
+            else
+                break
+            end
+            x = humans[vac_ind[i][r]]
             x.days_vac = 0
             x.vac_status = 2
             x.index_day = 1
             total_given += 1
+            doses_second[x.vaccine_n] -= 1
+            remaining_doses -= 1
         end
 
         pos = findall(y-> humans[y].vac_status == 0 && !(humans[y].health_status in aux_states),vac_ind[i])
         
         l2 = min(vac_rate_1[time_pos,i],length(pos))
-
-        remaining_doses += (vac_rate_1[time_pos,i] - l2)
-
+        remaining_doses += (vac_rate_1[time_pos,i])
         for j = 1:l2
-            x = humans[vac_ind[i][pos[j]]]
+            if doses_first[1] > 0
+                pos2 = pos
+            else
+                pos2 = filter(x-> humans[vac_ind[i][x]].age >= 18,pos)
+            end
+
+            if length(pos2) > 0 
+                r = rand(pos2)
+            else
+                
+                break
+            end
+            x = humans[vac_ind[i][r]]
             x.days_vac = 0
             x.vac_status = 1
             x.index_day = 1
-            x.vaccine_n = x.age < 18 ? 1 : sample(rng,[1,2,3], Weights(p.vaccine_proportion))
+            x.vaccine_n = x.age < 18 ? 1 : sample(rng,[1,2,3], Weights(doses_first/sum(doses_first)))
             x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
-            
+            doses_first[x.vaccine_n] -= 1
+            remaining_doses -= 1
             total_given += 1
         end
-
     end
-
     ###remaining_doses are given to any individual within the groups that are vaccinated on that day
-    if remaining_doses > 0
+    v1 = ones(Int64,doses_second[1]+doses_first[1])
+    v2 = 2*ones(Int64,doses_second[2]+doses_first[2])
+    v3 = 3*ones(Int64,doses_second[3]+doses_first[3])
 
-        pos = map(k->findall(y-> humans[y].vac_status == 1 && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
-        pos2 = map(k->findall(y-> humans[y].vac_status == 0 && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
+    v = shuffle([v1;v2;v3])
+
+    for vac in v
+        if vac == 1
+            pos = map(k->findall(y-> humans[y].vac_status == 1 && humans[y].vaccine_n == vac && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
+            pos2 = map(k->findall(y-> humans[y].vac_status == 0 && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
         
+        elseif vac == 2
+            pos = map(k->findall(y-> humans[y].vac_status == 1 && humans[y].vaccine_n == vac && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
+            pos2 = map(k->findall(y-> humans[y].vac_status == 0 && humans[y].age >= 18 && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
+        
+        else
+            pos = map(k->findall(y-> humans[y].vac_status == 1 && humans[y].vaccine_n == vac && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
+            pos2 = map(k->findall(y-> humans[y].vac_status == 0 && humans[y].age >= 18 && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
+        end
+
         aux = findall(x-> vac_rate_1[time_pos,x] > 0 || vac_rate_2[time_pos,x] > 0, 1:length(vac_ind))
         position = map(k-> vac_ind[k][pos[k]],aux)
         position2 = map(k-> vac_ind[k][pos2[k]],aux)
-
         r = vcat(position...,position2...)
-        m = min(remaining_doses,length(r))
-
-        rr = sample(rng,r,m,replace=false)
+        rr = sample(rng,r)
+        x = humans[rr]
+        if x.vac_status == 0
+            x.days_vac = 0
+            x.vac_status = 1
+            x.index_day = 1
+            x.vaccine_n = vac
+            x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
         
-        for i in rr
-            x = humans[i]
-            if x.vac_status == 0
-                x.days_vac = 0
-                x.vac_status = 1
-                x.index_day = 1
-                x.vaccine_n = x.age < 18 ? 1 : sample([1,2,3], Weights(p.vaccine_proportion))
-                x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
-            
-                total_given += 1
-            elseif x.vac_status == 1
-                x.days_vac = 0
-                x.vac_status = 2
-                x.index_day = 1
-                total_given += 1
-            else
-                error("error in humans vac status - vac time")
-            end
+            total_given += 1
+        elseif x.vac_status == 1
+            x.days_vac = 0
+            x.vac_status = 2
+            x.index_day = 1
+            total_given += 1
+        else
+            error("error in humans vac status - vac time")
         end
     end
 
