@@ -56,7 +56,7 @@ end
     start_several_inf::Bool = true
     modeltime::Int64 = 435
     initialinf::Int64 = 20
-    initialhi::Int64 = 0 ## initial herd immunity, inserts number of REC individuals
+    initialhi::Int64 = 20 ## initial herd immunity, inserts number of REC individuals
     τmild::Int64 = 0 ## days before they self-isolate for mild cases
     fmild::Float64 = 0.0  ## percent of people practice self-isolation
     fsevere::Float64 = 0.0 #
@@ -82,50 +82,41 @@ end
 
     
     vaccinating::Bool = true #vaccinating?
-    drop_rate::Float64 = 0.0 #probability of not getting second dose
-    fixed_cov::Float64 = 0.4 #coverage of population
-    
+   
     red_risk_perc::Float64 = 1.0 #relative isolation in vaccinated individuals
-    reduction_protection::Float64 = 0.0 #reduction in protection against infection
-    extra_dose::Bool = false #if it is turned on, extradoses are given to general population
-    extra_dose_n::Int64 = 0 #how many
-    extra_dose_day::Int64 = 999 #when extra doses are implemented
     days_Rt::Array{Int64,1} = [100;200;300] #days to get Rt
 
     ##Alpha - B.1.1.7
     sec_strain_trans::Float64 = 1.5#1.5 #transmissibility of second strain
     ins_sec_strain::Bool = true #insert second strain?
     initialinf2::Int64 = 1 #number of initial infected of second strain
-    time_sec_strain::Int64 = 178 #when will the second strain introduced -- Jan 3
+    time_sec_strain::Int64 = 125 #when will the second strain introduced -- Jan 3
 
     ## Gamma - P.1
     ins_third_strain::Bool = true #insert third strain?
-    initialinf3::Int64 = 1 #number of initial infected of third strain
-    time_third_strain::Int64 = 206 #when will the third strain introduced - P1 March 20
+    initialinf3::Int64 = 5 #number of initial infected of third strain
+    time_third_strain::Int64 = 999 #when will the third strain introduced - P1 March 20
     third_strain_trans::Float64 = 1.6 #transmissibility of third strain
     reduction_recovered::Float64 = 0.21
 
     ## Delta - B.1.617.2
     ins_fourth_strain::Bool = true #insert fourth strain?
     initialinf4::Int64 = 1 #number of initial infected of fourth strain
-    time_fourth_strain::Int64 = 187 #when will the fourth strain introduced
+    time_fourth_strain::Int64 = 173 #when will the fourth strain introduced
     fourth_strain_trans::Float64 = 1.3 #transmissibility compared to second strain strain
 
     ## Iota - B.1.526
     ins_fifth_strain::Bool = true #insert fifth strain?
     initialinf5::Int64 = 1 #number of initial infected of fifth strain
-    time_fifth_strain::Int64 = 190 #when will the fifth strain introduced
+    time_fifth_strain::Int64 = 7 #when will the fifth strain introduced
     fifth_strain_trans::Float64 = 1.35 #transmissibility of fifth strain
 
     ## Beta - B.1.351
     ins_sixth_strain::Bool = true #insert third strain?
     initialinf6::Int64 = 1 #number of initial infected of sixth strain
-    time_sixth_strain::Int64 = 212 #when will the sixth strain introduced
+    time_sixth_strain::Int64 = 999 #when will the sixth strain introduced
     sixth_strain_trans::Float64 = 1.2 #transmissibility of sixth strain
 
-    reduction_recovered_4::Float64 = 0.21
-    strain_ef_red3::Float64 = 0.8 #reduction in efficacy against third strain
-    strain_ef_red4::Float64 = 0.8 #reduction in efficacy against third strain
     mortality_inc::Float64 = 1.3 #The mortality increase when infected by strain 2
 
     vaccine_proportion::Vector{Float64} = [0.59;0.33;0.08]
@@ -198,7 +189,7 @@ export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
-    hmatrix,hh1,hh2,hh3,hh4,remaining_doses = main(ip,simnum)            
+    hmatrix,hh1,hh2,hh3,hh4,remaining_doses,total_given = main(ip,simnum)            
 
 
     
@@ -297,7 +288,7 @@ function runsim(simnum, ip::ModelParameters)
     R01 = R01,
     R02 = R02, cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
-    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,years_w_lost = years_w_lost)
+    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,years_w_lost = years_w_lost, remaining = remaining_doses, total_given = total_given)
 end
 export runsim
 
@@ -345,7 +336,8 @@ function main(ip::ModelParameters,sim::Int64)
     time_vac::Int64 = 1
     time_pos::Int64 = 0
     time_prop::Int64 = 1
-    remaining_doses = 0
+    remaining_doses::Int64 = 0
+    total_given::Int64 = 0
     if p.vaccinating
         vac_ind = vac_selection(sim,18)
     else
@@ -402,7 +394,9 @@ function main(ip::ModelParameters,sim::Int64)
 
         time_vac += 1
         if time_pos > 0 
-            remaining_doses += vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2)
+            aux_ =  vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2)
+            remaining_doses += aux_[1]
+            total_given += aux_[2]
         end
         #println([time_vac length(findall(x-> x.vac_status == 2 && x.age >= 18,humans))])
        
@@ -423,7 +417,7 @@ function main(ip::ModelParameters,sim::Int64)
     end
     
     
-    return hmatrix,h_init1,h_init2,h_init3, h_init4, remaining_doses ## return the model state as well as the age groups. 
+    return hmatrix,h_init1,h_init2,h_init3, h_init4, remaining_doses, total_given ## return the model state as well as the age groups. 
 end
 export main
 
@@ -564,12 +558,13 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
             x.index_day = 1
             x.vaccine_n = vac
             x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
-        
+            remaining_doses -= 1
             total_given += 1
         elseif x.vac_status == 1
             x.days_vac = 0
             x.vac_status = 2
             x.index_day = 1
+            remaining_doses -= 1
             total_given += 1
         else
             error("error in humans vac status - vac time")
@@ -578,11 +573,16 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
 
     t = sum(vac_rate_1[time_pos,:]+vac_rate_2[time_pos,:])
     println("Total $time_pos $remaining_doses $total_given $t")
-    if total_given > t
+    if total_given != t
         error("vaccination")
     end
+    #= 
+        if remaining_doses > 0 
+            println("Here-----------")
+            println("")
+        end =#
 
-    return remaining_doses
+    return remaining_doses,total_given
 
 end
 

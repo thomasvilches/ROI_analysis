@@ -20,7 +20,7 @@ The branch `NYC` has data for NYC and the model is calibrated.
 - New age groups according to NYC vaccination data.
 - Jensen was implemented. We need to set up the vaccine efficacy against variants.
 
-Huge Changes in vac_time were made. I tested and it is vaccinating properly.
+Huge Changes in vac_time were made. **I found what seems to be a bug. I am analyzing and fixing it**
 A time-varing proportion of vaccines (brand) was implemented.
 
 

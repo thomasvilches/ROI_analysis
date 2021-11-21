@@ -109,7 +109,10 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     vac_j_2 = [cdr[i].n_jensen_2 for i=1:nsims]
     vac_j_w_2 = [cdr[i].n_jensen_w_2 for i=1:nsims]
 
-    writedlm(string(folderprefix,"/vaccine_all.dat"),[vac_p vac_m vac_j vac_p_2 vac_m_2 vac_j_2])
+    remaining = [cdr[i].remaining for i=1:nsims]
+    total = [cdr[i].total_given for i=1:nsims]
+
+    writedlm(string(folderprefix,"/vaccine_all.dat"),[vac_p vac_m vac_j vac_p_2 vac_m_2 vac_j_2 remaining total])
     writedlm(string(folderprefix,"/vaccine_working.dat"),[vac_p_w vac_m_w vac_j_w vac_p_w_2 vac_m_w_2 vac_j_w_2])
 
     writedlm(string(folderprefix,"/year_of_work.dat"),[cdr[i].years_w_lost for i=1:nsims])
@@ -144,7 +147,6 @@ function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="us",h
     @everywhere ip = cv.ModelParameters(β=$b,fsevere = 1.0,fmild = 1.0,vaccinating = $vac,
     herd = $(h_i),start_several_inf=true,initialinf3=$ic3,initialinf6=$ic6,initialinf=$ic1,initialinf2=$ic2,initialinf5=$ic5,initialinf4=$ic4,
     time_sec_strain = $when2,time_third_strain = $when3,time_fourth_strain = $when4,time_fifth_strain = $when5,time_sixth_strain = $when6,
-    strain_ef_red3 = $red,strain_ef_red4 = $red,
     status_relax = $dosis, relax_after = $ta,file_index = $index,
     modeltime=$mt, prov = Symbol($province), scenario = Symbol($scen), α = $alpha,
     time_change_contact = $dc,
