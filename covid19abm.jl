@@ -398,6 +398,16 @@ function main(ip::ModelParameters,sim::Int64)
             remaining_doses += aux_[1]
             total_given += aux_[2]
         end
+
+        #auxx = findall(x-> x.vac_status > 0,humans)
+        
+       #=  if length(auxx) > 0
+            aa = sum([humans[x].vac_status for x in auxx]) 
+            if aa != total_given
+                println("$st $(time_pos+1) erro $total_given $aa")
+            end
+        end =#
+
         #println([time_vac length(findall(x-> x.vac_status == 2 && x.age >= 18,humans))])
        
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
@@ -438,7 +448,7 @@ end
 function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac_rate_1::Matrix{Int64},vac_rate_2::Matrix{Int64})
     aux_states = (MILD, MISO, INF, IISO, HOS, ICU, DED)
     ##first dose
-    rng = MersenneTwister(123*sim)
+   # rng = MersenneTwister(123*sim)
     ### lets create distribute the number of doses per age group
     
     remaining_doses::Int64 = 0
@@ -474,27 +484,28 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
 
         for j = 1:l1
             if doses_second[1] > 0 && doses_second[2] > 0 
-                pos2 = pos
+                pos2 = filter(x-> humans[vac_ind[i][x]].vac_status == 1,pos)
             elseif doses_second[1] > 0 
-                pos2 = filter(x-> humans[vac_ind[i][x]].vaccine_n == 1,pos)
+                pos2 = filter(x-> humans[vac_ind[i][x]].vaccine_n == 1 && humans[vac_ind[i][x]].vac_status == 1,pos)
             elseif doses_second[2] > 0 
-                pos2 = filter(x-> humans[vac_ind[i][x]].vaccine_n == 2,pos)
+                pos2 = filter(x-> humans[vac_ind[i][x]].vaccine_n == 2  && humans[vac_ind[i][x]].vac_status == 1,pos)
             else
                 error("missing doses")
             end
 
             if length(pos2) > 0 
                 r = rand(pos2)
+                x = humans[vac_ind[i][r]]
+                x.days_vac = 0
+                x.vac_status = 2
+                x.index_day = 1
+                total_given += 1
+                doses_second[x.vaccine_n] -= 1
+                remaining_doses -= 1
             else
                 break
             end
-            x = humans[vac_ind[i][r]]
-            x.days_vac = 0
-            x.vac_status = 2
-            x.index_day = 1
-            total_given += 1
-            doses_second[x.vaccine_n] -= 1
-            remaining_doses -= 1
+            
         end
 
         pos = findall(y-> humans[y].vac_status == 0 && !(humans[y].health_status in aux_states),vac_ind[i])
@@ -503,26 +514,26 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         remaining_doses += (vac_rate_1[time_pos,i])
         for j = 1:l2
             if doses_first[1] > 0
-                pos2 = pos
+                pos2 = filter(x-> humans[vac_ind[i][x]].vac_status == 0,pos)
             else
-                pos2 = filter(x-> humans[vac_ind[i][x]].age >= 18,pos)
+                pos2 = filter(x-> humans[vac_ind[i][x]].age >= 18 && humans[vac_ind[i][x]].vac_status == 0,pos)
             end
 
             if length(pos2) > 0 
                 r = rand(pos2)
+                x = humans[vac_ind[i][r]]
+                x.days_vac = 0
+                x.vac_status = 1
+                x.index_day = 1
+                x.vaccine_n = x.age < 18 ? 1 : sample([1,2,3], Weights(doses_first/sum(doses_first)))
+                x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
+                doses_first[x.vaccine_n] -= 1
+                remaining_doses -= 1
+                total_given += 1
             else
-                
                 break
             end
-            x = humans[vac_ind[i][r]]
-            x.days_vac = 0
-            x.vac_status = 1
-            x.index_day = 1
-            x.vaccine_n = x.age < 18 ? 1 : sample(rng,[1,2,3], Weights(doses_first/sum(doses_first)))
-            x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
-            doses_first[x.vaccine_n] -= 1
-            remaining_doses -= 1
-            total_given += 1
+            
         end
     end
     ###remaining_doses are given to any individual within the groups that are vaccinated on that day
@@ -550,7 +561,7 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         position = map(k-> vac_ind[k][pos[k]],aux)
         position2 = map(k-> vac_ind[k][pos2[k]],aux)
         r = vcat(position...,position2...)
-        rr = sample(rng,r)
+        rr = sample(r)
         x = humans[rr]
         if x.vac_status == 0
             x.days_vac = 0
@@ -572,15 +583,11 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
     end
 
     t = sum(vac_rate_1[time_pos,:]+vac_rate_2[time_pos,:])
-    println("Total $time_pos $remaining_doses $total_given $t")
+   # println("Total $time_pos $remaining_doses $total_given $t")
     if total_given != t
         error("vaccination")
     end
-    #= 
-        if remaining_doses > 0 
-            println("Here-----------")
-            println("")
-        end =#
+   
 
     return remaining_doses,total_given
 
