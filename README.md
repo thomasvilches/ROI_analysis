@@ -13,6 +13,9 @@ The features and instruction will be added later when the code is ready.
 
 
 ## New York City data in Nov 2021
+### Created this branch do perform some tests. 
+
+**The changes in this branch will be dumped the NYC branch, since they presents an improvement**
 
 The branch `NYC` has data for NYC and the model is calibrated. 
 
@@ -20,7 +23,7 @@ The branch `NYC` has data for NYC and the model is calibrated.
 - New age groups according to NYC vaccination data.
 - Jensen was implemented. We need to set up the vaccine efficacy against variants.
 
-Huge Changes in vac_time were made. **I found what seems to be a bug. I am analyzing and fixing it**
+Huge Changes in vac_time were made.
 A time-varing proportion of vaccines (brand) was implemented.
 
 

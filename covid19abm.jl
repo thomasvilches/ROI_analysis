@@ -137,10 +137,6 @@ end
     [[[0.921]],[[0.816]],[[0.34]],[[0.781]],[[0.921]],[[0.34]]]]#### 50:5:80
 
 
-    time_change::Int64 = 999## used to calibrate the model
-    how_long::Int64 = 1## used to calibrate the model
-    how_much::Float64 = 0.0## used to calibrate the model
-    rate_increase::Float64 = how_much/how_long## used to calibrate the model
     time_change_contact::Array{Int64,1} = [1;map(y-> 95+y,0:3);map(y->134+y,0:9);map(y->166+y,0:13);map(y->199+y,0:35)]
     change_rate_values::Array{Float64,1} = [1.0;map(y-> 1.0-0.01*y,1:4);map(y-> 0.96-(0.055/10)*y,1:10);map(y-> 0.90+(0.1/14)*y,1:14);map(y-> 1.0-(0.34/36)*y,1:36)]
     contact_change_rate::Float64 = 1.0 #the rate that receives the value of change_rate_values
@@ -152,8 +148,6 @@ end
     relax_after::Int64 = 1
 
     day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
-    day_final_vac::Int64 = 332
-    vac_limiar::Float64 = 0.74
     time_vac_kids::Int64 = 253
     using_jj::Bool = false
 
@@ -182,7 +176,7 @@ Base.show(io::IO, ::MIME"text/plain", z::Human) = dump(z)
 const humans = Array{Human}(undef, 0) 
 const p = ModelParameters()  ## setup default parameters
 const agebraks = @SVector [0:4, 5:19, 20:49, 50:64, 65:99]
-const agebraks_vac = @SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
+#const agebraks_vac = @SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
 const BETAS = Array{Float64, 1}(undef, 0) ## to hold betas (whether fixed or seasonal), array will get resized
 const ct_data = ct_data_collect()
 export ModelParameters, HEALTH, Human, humans, BETAS
@@ -309,6 +303,8 @@ function main(ip::ModelParameters,sim::Int64)
     vac_rate_2::Matrix{Int64} = vaccination_rate_2(sim)
     vaccination_days::Vector{Int64} = days_vac_f(size(vac_rate_1,1))
 
+    agebraks_vac::SVector{8, UnitRange{Int64}} = get_breaks_vac()#@SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
+
     v_prop,fd_prop,sd_prop = temporal_proportion()
     #h_init::Int64 = 0
     # insert initial infected agents into the model
@@ -339,7 +335,7 @@ function main(ip::ModelParameters,sim::Int64)
     remaining_doses::Int64 = 0
     total_given::Int64 = 0
     if p.vaccinating
-        vac_ind = vac_selection(sim,18)
+        vac_ind = vac_selection(sim,18,agebraks_vac)
     else
         time_vac = 9999 #this guarantees that no one will be vaccinated
     end
@@ -389,7 +385,7 @@ function main(ip::ModelParameters,sim::Int64)
         end
 
         if p.vaccinating && st == p.time_vac_kids 
-            vac_ind = vac_selection(sim,12)
+            vac_ind = vac_selection(sim,12,agebraks_vac)
         end
 
         time_vac += 1
@@ -431,7 +427,7 @@ function main(ip::ModelParameters,sim::Int64)
 end
 export main
 
-function vac_selection(sim::Int64,age::Int64)
+function vac_selection(sim::Int64,age::Int64,agebraks_vac)
     
     
 

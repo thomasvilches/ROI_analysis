@@ -26380,7 +26380,10 @@ function temporal_proportion()
             0.7641817 0.2358183       0
         ]
     else
-        error("no distribution for proportion")
+        v = [1]
+        fd = [1.0 0.0 0.0]
+        sd = [1.0 0.0 0.0]
+        #error("no distribution for proportion")
     end
 
     if !p.using_jj
@@ -26390,4 +26393,15 @@ function temporal_proportion()
     end
 
     return v,fd,sd
+end
+
+
+function get_breaks_vac()
+
+    if p.prov == :newyorkcity
+        brak = @SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
+    else
+        brak = @SVector [12:15, 16:17, 18:24, 25:39, 40:49, 50:64, 65:74, 75:100]
+    end
+
 end
