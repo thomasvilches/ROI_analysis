@@ -17,7 +17,7 @@ The features and instruction will be added later when the code is ready.
 
 **The changes in this branch will be dumped the NYC branch, since they presents an improvement**
 
-**The possibility of increase slowly the nonvac contacts is implemented. The calibration was performed for all of the three possibilities**
+**The possibility of increase slowly the nonvac contacts is implemented. A forth possibility was calibrated. THis last one got really good**
 
 
 The branch `NYC` has data for NYC and the model is calibrated. 
