@@ -147,6 +147,11 @@ end
     status_relax::Int16 = 2
     relax_after::Int64 = 1
 
+    relax_over::Int64 = 92
+    relax_rate::Float64 = (1-contact_change_2)/relax_over
+    turnon::Int64 = 0
+    time_back_to_normal::Int64 = 999
+
     day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
     time_vac_kids::Int64 = 253
     using_jj::Bool = false
@@ -334,6 +339,7 @@ function main(ip::ModelParameters,sim::Int64)
     time_prop::Int64 = 1
     remaining_doses::Int64 = 0
     total_given::Int64 = 0
+    count_relax::Int64 = 1
     if p.vaccinating
         vac_ind = vac_selection(sim,18,agebraks_vac)
     else
@@ -372,6 +378,11 @@ function main(ip::ModelParameters,sim::Int64)
 
         if st == p.relaxing_time ### time that people vaccinated people is allowed to go back to normal
             setfield!(p, :relaxed, true)
+        end
+        if st >= p.time_back_to_normal && count_relax <= p.relax_over
+            #setfield!(p, :contact_change_2, p.contact_change_2+p.relax_rate)
+            p.contact_change_2 += p.relax_rate
+            count_relax += 1
         end
 
         if time_pos < length(vaccination_days) && time_vac == vaccination_days[time_pos+1]
@@ -1529,7 +1540,7 @@ export _get_betavalue
     
     if !x.iso 
         #cnt = rand() < 0.5 ? 0 : rand(1:3)
-        aux = x.relaxed ? 1.0 : p.contact_change_rate*p.contact_change_2
+        aux = x.relaxed ? 1.0*(p.contact_change_rate^p.turnon) : p.contact_change_rate*p.contact_change_2
         cnt = rand(negative_binomials(ag,aux)) ##using the contact average for shelter-in
     else 
         cnt = rand(negative_binomials_shelter(ag,p.contact_change_2))  # expensive operation, try to optimize
