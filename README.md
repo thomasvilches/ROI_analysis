@@ -17,7 +17,8 @@ The features and instruction will be added later when the code is ready.
 
 **The changes in this branch will be dumped the NYC branch, since they presents an improvement**
 
-- Calibrated the scenario where vaccinated people change the behaviour. I am implementing the idea of non-vac people slowly backing to normal.
+**The possibility of increase slowly the nonvac contacts is implemented. The calibration was performed for all of the three possibilities**
+
 
 The branch `NYC` has data for NYC and the model is calibrated. 
 
