@@ -13,12 +13,12 @@ The features and instruction will be added later when the code is ready.
 
 
 ## New York City data in Nov 2021
-### Created this branch do perform some tests. 
-
 **The changes in this branch will be dumped the NYC branch, since they presents an improvement**
 
 **The possibility of increase slowly the nonvac contacts is implemented. A forth possibility was calibrated. THis last one got really good**
 
+
+# Implementing waning immunity
 
 The branch `NYC` has data for NYC and the model is calibrated. 
 
