@@ -12,13 +12,16 @@ The features and instruction will be added later when the code is ready.
 
 
 
-## New York City data in Nov 2021
+# New York City data in Nov 2021
 **The changes in this branch will be dumped the NYC branch, since they presents an improvement**
 
 **The possibility of increase slowly the nonvac contacts is implemented. A forth possibility was calibrated. THis last one got really good**
 
 
-# Implementing waning immunity
+## Waning immunity implemented. Need to check the details for it. Need to test running the previous results without waning
+
+- same waning for inf, symp, sev?
+- same waning for the strains?
 
 The branch `NYC` has data for NYC and the model is calibrated. 
 

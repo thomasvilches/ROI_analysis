@@ -43,6 +43,10 @@ Base.@kwdef mutable struct Human
     vaccine::Symbol = :none
     vaccine_n::Int16 = 0
     protected::Int64 = 0
+
+    vac_eff_inf::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
+    vac_eff_symp::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
+    vac_eff_sev::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
 end
 
 ## default system parameters
@@ -161,6 +165,12 @@ end
     α3::Float64 = 1.0
 
     scenario::Symbol = :statuscuo
+
+    #one waning rate for each efficacy? For each strain? I can change this structure based on that
+
+    waning_rate::Array{Float64,1} = [0.0;0.0;0.0]
+    start_waning::Array{Int64,1} = [999;999;999]
+
     ### after calibration, how much do we want to increase the contact rate... in this case, to reach 70%
     ### 0.5*0.95 = 0.475, so we want to multiply this by 1.473684211
 end
@@ -438,6 +448,16 @@ function main(ip::ModelParameters,sim::Int64)
 end
 export main
 
+function waning_immunity(x::Human)
+    if x.vac_status >= 2 && x.days_vac > p.start_waning[x.vaccine_n]
+        for i in 1:length(x.vac_eff_inf)
+            x.vac_eff_inf[i][x.vac_status][end] = min(0.0,x.vac_eff_inf[i][x.vac_status][end]-p.waning_rate[x.vaccine_n])
+            x.vac_eff_symp[i][x.vac_status][end] = min(0.0,x.vac_eff_symp[i][x.vac_status][end]-p.waning_rate[x.vaccine_n])
+            x.vac_eff_sev[i][x.vac_status][end] = min(0.0,x.vac_eff_sev[i][x.vac_status][end]-p.waning_rate[x.vaccine_n])
+        end
+    end
+end
+
 function vac_selection(sim::Int64,age::Int64,agebraks_vac)
     
     
@@ -537,6 +557,10 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
                 doses_first[x.vaccine_n] -= 1
                 remaining_doses -= 1
                 total_given += 1
+
+                x.vac_eff_inf = p.vac_efficacy_inf[x.vaccine_n]
+                x.vac_eff_symp = p.vac_efficacy_symp[x.vaccine_n]
+                x.vac_eff_sev = p.vac_efficacy_sev[x.vaccine_n]
             else
                 break
             end
@@ -578,12 +602,17 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
             x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
             remaining_doses -= 1
             total_given += 1
+            x.vac_eff_inf = p.vac_efficacy_inf[x.vaccine_n]
+            x.vac_eff_symp = p.vac_efficacy_symp[x.vaccine_n]
+            x.vac_eff_sev = p.vac_efficacy_sev[x.vaccine_n]
         elseif x.vac_status == 1
             x.days_vac = 0
             x.vac_status = 2
             x.index_day = 1
             remaining_doses -= 1
             total_given += 1
+
+            
         else
             error("error in humans vac status - vac time")
         end
@@ -1007,6 +1036,7 @@ function time_update()
         get_nextday_counts(x)
         if p.vaccinating
             vac_update(x)
+            waning_immunity(x)
         end
     end
 
@@ -1071,7 +1101,7 @@ function move_to_latent(x::Human)
     if x.recovered
         auxiliar = (1-p.vac_efficacy_symp[1][1][2][end])
     else
-        aux = x.vac_status*x.protected > 0 ? p.vac_efficacy_symp[x.vaccine_n][x.strain][x.vac_status][x.protected] : 0.0
+        aux = x.vac_status*x.protected > 0 ? x.vac_eff_symp[x.strain][x.vac_status][x.protected] : 0.0
         auxiliar = (1-aux)
     end
  
@@ -1132,7 +1162,7 @@ function move_to_pre(x::Human)
     if x.recovered
         auxiliar = (1-p.vac_efficacy_sev[1][1][2][end])
     else
-        aux = x.vac_status*x.protected > 0 ? p.vac_efficacy_sev[x.vaccine_n][x.strain][x.vac_status][x.protected] : 0.0
+        aux = x.vac_status*x.protected > 0 ? x.vac_eff_sev[x.strain][x.vac_status][x.protected] : 0.0
         auxiliar = (1-aux)
     end
 
@@ -1582,7 +1612,7 @@ function dyntrans(sys_time, grps,sim)
                     beta = _get_betavalue(sys_time, xhealth)
                     adj_beta = 0 # adjusted beta value by strain and vaccine efficacy
                     if y.health == SUS && y.swap == UNDEF
-                        aux = y.vac_status*y.protected > 0 ? p.vac_efficacy_inf[y.vaccine_n][x.strain][y.vac_status][y.protected] : 0.0
+                        aux = y.vac_status*y.protected > 0 ? y.vac_eff_inf[x.strain][y.vac_status][y.protected] : 0.0
                         adj_beta = beta*(1-aux)
                     elseif (x.strain in (3,4,6) && y.health in (REC, REC2, REC5) && y.swap == UNDEF)
                         adj_beta = beta*(p.reduction_recovered) #0.21
