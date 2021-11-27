@@ -194,11 +194,14 @@ const agebraks = @SVector [0:4, 5:19, 20:49, 50:64, 65:99]
 #const agebraks_vac = @SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
 const BETAS = Array{Float64, 1}(undef, 0) ## to hold betas (whether fixed or seasonal), array will get resized
 const ct_data = ct_data_collect()
+const waning_factors = waning_factor()
 export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
     hmatrix,hh1,hh2,hh3,hh4,remaining_doses,total_given = main(ip,simnum)            
+
+    
 
 
     
@@ -317,6 +320,7 @@ function main(ip::ModelParameters,sim::Int64)
     vac_rate_1::Matrix{Int64} = vaccination_rate_1(sim)
     vac_rate_2::Matrix{Int64} = vaccination_rate_2(sim)
     vaccination_days::Vector{Int64} = days_vac_f(size(vac_rate_1,1))
+    
 
     agebraks_vac::SVector{8, UnitRange{Int64}} = get_breaks_vac()#@SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
 
@@ -449,11 +453,13 @@ end
 export main
 
 function waning_immunity(x::Human)
-    if x.vac_status >= 2 && x.days_vac > p.start_waning[x.vaccine_n]
+    index = Int(floor(x.days_vac/7))
+    if index > 0 && index <= size(waning_factors,1)
+        j = x.protected
         for i in 1:length(x.vac_eff_inf)
-            x.vac_eff_inf[i][x.vac_status][end] = min(0.0,x.vac_eff_inf[i][x.vac_status][end]-p.waning_rate[x.vaccine_n])
-            x.vac_eff_symp[i][x.vac_status][end] = min(0.0,x.vac_eff_symp[i][x.vac_status][end]-p.waning_rate[x.vaccine_n])
-            x.vac_eff_sev[i][x.vac_status][end] = min(0.0,x.vac_eff_sev[i][x.vac_status][end]-p.waning_rate[x.vaccine_n])
+            x.vac_eff_inf[i][x.vac_status][j] = p.vac_efficacy_inf[x.vaccine_n][i][x.vac_status][j]*waning_factors[index,x.vaccine_n]
+            x.vac_eff_symp[i][x.vac_status][j] = p.vac_efficacy_symp[x.vaccine_n][i][x.vac_status][j]*waning_factors[index,x.vaccine_n+2]
+            x.vac_eff_sev[i][x.vac_status][j] = p.vac_efficacy_sev[x.vaccine_n][i][x.vac_status][j]*waning_factors[index,x.vaccine_n+2]
         end
     end
 end
@@ -558,9 +564,9 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
                 remaining_doses -= 1
                 total_given += 1
 
-                x.vac_eff_inf = p.vac_efficacy_inf[x.vaccine_n]
-                x.vac_eff_symp = p.vac_efficacy_symp[x.vaccine_n]
-                x.vac_eff_sev = p.vac_efficacy_sev[x.vaccine_n]
+                x.vac_eff_inf = deepcopy(p.vac_efficacy_inf[x.vaccine_n])
+                x.vac_eff_symp = deepcopy(p.vac_efficacy_symp[x.vaccine_n])
+                x.vac_eff_sev = deepcopy(p.vac_efficacy_sev[x.vaccine_n])
             else
                 break
             end
@@ -602,9 +608,9 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
             x.vaccine = [:pfizer;:moderna;:jensen][x.vaccine_n]
             remaining_doses -= 1
             total_given += 1
-            x.vac_eff_inf = p.vac_efficacy_inf[x.vaccine_n]
-            x.vac_eff_symp = p.vac_efficacy_symp[x.vaccine_n]
-            x.vac_eff_sev = p.vac_efficacy_sev[x.vaccine_n]
+            x.vac_eff_inf = deepcopy(p.vac_efficacy_inf[x.vaccine_n])
+            x.vac_eff_symp = deepcopy(p.vac_efficacy_symp[x.vaccine_n])
+            x.vac_eff_sev = deepcopy(p.vac_efficacy_sev[x.vaccine_n])
         elseif x.vac_status == 1
             x.days_vac = 0
             x.vac_status = 2
@@ -657,6 +663,7 @@ function vac_update(x::Human)
         if !x.relaxed
             x.relaxed = p.relaxed &&  x.vac_status >= p.status_relax && x.days_vac >= p.relax_after ? true : false
         end
+        waning_immunity(x)
         x.days_vac += 1
     end
    
@@ -1036,7 +1043,6 @@ function time_update()
         get_nextday_counts(x)
         if p.vaccinating
             vac_update(x)
-            waning_immunity(x)
         end
     end
 
