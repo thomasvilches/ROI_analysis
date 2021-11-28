@@ -18,10 +18,7 @@ The features and instruction will be added later when the code is ready.
 **The possibility of increase slowly the nonvac contacts is implemented. A forth possibility was calibrated. THis last one got really good**
 
 
-## Waning immunity implemented. Need to check the details for it. Need to test running the previous results without waning
-
-- same waning for inf, symp, sev?
-- same waning for the strains?
+## Waning immunity implemented. 
 
 The branch `NYC` has data for NYC and the model is calibrated. 
 
