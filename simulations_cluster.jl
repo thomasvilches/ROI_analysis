@@ -139,7 +139,7 @@ end
 
 
 
-function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="us",h_i::Int64 = 0,ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,when2::Int64=1,when3::Int64 = 1,when4::Int64=1,when5::Int64=1,when6::Int64=1,index::Int64 = 0,dosis::Int64=3,ta::Int64 = 999,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,when_relax::Int64 = 999,turnon_::Int64 = 0,scen::String="statuscuo",alpha::Float64 = 1.0,alpha2::Float64 = 0.0,alpha3::Float64 = 1.0,nsims::Int64=500)
+function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="us",h_i::Int64 = 0,ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,when2::Int64=1,when3::Int64 = 1,when4::Int64=1,when5::Int64=1,when6::Int64=1,index::Int64 = 0,dosis::Int64=3,ta::Int64 = 999,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,when_relax::Int64 = 999,turnon_::Int64 = 0,waning::Int64 = 0, scen::String="statuscuo",alpha::Float64 = 1.0,alpha2::Float64 = 0.0,alpha3::Float64 = 1.0,nsims::Int64=500)
     
     
     #b = bd[h_i]
@@ -153,7 +153,7 @@ function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="us",h
     change_rate_values = $rc,
     α2 = $alpha2,
     α3 = $alpha3,
-    time_back_to_normal=$when_relax, turnon = $turnon_)
+    time_back_to_normal=$when_relax, turnon = $turnon_,waning = $waning)
 
     folder = create_folder(ip,"pfizer",province,calibrating)
 

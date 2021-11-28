@@ -168,9 +168,7 @@ end
 
     #one waning rate for each efficacy? For each strain? I can change this structure based on that
 
-    waning_rate::Array{Float64,1} = [0.0;0.0;0.0]
-    start_waning::Array{Int64,1} = [999;999;999]
-
+    waning::Int64 = 0
     ### after calibration, how much do we want to increase the contact rate... in this case, to reach 70%
     ### 0.5*0.95 = 0.475, so we want to multiply this by 1.473684211
 end
@@ -201,7 +199,7 @@ function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
     hmatrix,hh1,hh2,hh3,hh4,remaining_doses,total_given = main(ip,simnum)            
 
-    
+
 
 
     
@@ -457,9 +455,9 @@ function waning_immunity(x::Human)
     if index > 0 && index <= size(waning_factors,1)
         j = x.protected
         for i in 1:length(x.vac_eff_inf)
-            x.vac_eff_inf[i][x.vac_status][j] = p.vac_efficacy_inf[x.vaccine_n][i][x.vac_status][j]*waning_factors[index,x.vaccine_n]
-            x.vac_eff_symp[i][x.vac_status][j] = p.vac_efficacy_symp[x.vaccine_n][i][x.vac_status][j]*waning_factors[index,x.vaccine_n+2]
-            x.vac_eff_sev[i][x.vac_status][j] = p.vac_efficacy_sev[x.vaccine_n][i][x.vac_status][j]*waning_factors[index,x.vaccine_n+2]
+            x.vac_eff_inf[i][x.vac_status][j] = p.vac_efficacy_inf[x.vaccine_n][i][x.vac_status][j]*(waning_factors[index,x.vaccine_n])^p.waning
+            x.vac_eff_symp[i][x.vac_status][j] = p.vac_efficacy_symp[x.vaccine_n][i][x.vac_status][j]*(waning_factors[index,x.vaccine_n+2])^p.waning
+            x.vac_eff_sev[i][x.vac_status][j] = p.vac_efficacy_sev[x.vaccine_n][i][x.vac_status][j]*(waning_factors[index,x.vaccine_n+2])^p.waning
         end
     end
 end
