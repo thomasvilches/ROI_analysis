@@ -43,6 +43,7 @@ Base.@kwdef mutable struct Human
     vaccine::Symbol = :none
     vaccine_n::Int16 = 0
     protected::Int64 = 0
+    days_recovered::Int64 = -1
 
     vac_eff_inf::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_symp::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
@@ -913,31 +914,6 @@ function initialize()
 end
 export initialize
 
-function init_betas() 
-    if p.seasonal  
-        tmp = p.β .* td_seasonality()
-    else 
-        tmp = p.β .* ones(Float64, p.modeltime)
-    end
-    resize!(BETAS, length(tmp))
-    for i = 1:length(tmp)
-        BETAS[i] = tmp[i]
-    end
-end
-
-function td_seasonality()
-    ## returns a vector of seasonal oscillations
-    t = 1:p.modeltime
-    a0 = 6.261
-    a1 = -11.81
-    b1 = 1.817
-    w = 0.022 #0.01815    
-    temp = @. a0 + a1*cos((80-t)*w) + b1*sin((80-t)*w)  #100
-    #temp = @. a0 + a1*cos((80-t+150)*w) + b1*sin((80-t+150)*w)  #100
-    temp = (temp .- 2.5*minimum(temp))./(maximum(temp) .- minimum(temp)); # normalize  @2
-    return temp
-end
-
 function get_ag_dist() 
     # splits the initialized human pop into its age groups
     grps =  map(x -> findall(y -> y.ag == x, humans), 1:length(agebraks)) 
@@ -1019,6 +995,9 @@ function time_update()
     for x in humans 
         x.tis += 1 
         x.doi += 1 # increase day of infection. variable is garbage until person is latent
+        if x.recovered 
+            x.days_recovered += 1
+        end
         if x.tis >= x.exp             
             @match Symbol(x.swap_status) begin
                 :LAT  => begin move_to_latent(x); lat_v[x.strain] += 1; end
@@ -1042,6 +1021,7 @@ function time_update()
         if p.vaccinating
             vac_update(x)
         end
+       
     end
 
 
@@ -1103,7 +1083,34 @@ function move_to_latent(x::Human)
     g = findfirst(y-> y >= x.age, age_thres)
 
     if x.recovered
-        auxiliar = (1-p.vac_efficacy_symp[1][1][2][end])
+        if y.days_recovered <= y.days_vac
+            index = Int(floor(y.days_recovered/7))
+            if index > 0
+                if index <= size(waning_factors,1)
+                    aux = waning_factors[index,3]
+                else
+                    aux = waning_factors[end,3]
+                end
+            else
+                aux = 1.0
+            end
+        else
+            if y.vac_status*y.protected > 0
+                aux = y.vac_eff_symp[x.strain][y.vac_status][y.protected]
+            else
+                index = Int(floor(y.days_recovered/7))
+                if index > 0
+                    if index <= size(waning_factors,1)
+                        aux = waning_factors[index,3]
+                    else
+                        aux = waning_factors[end,3]
+                    end
+                else
+                    aux = 1.0
+                end
+            end
+        end
+        auxiliar = (1-aux)
     else
         aux = x.vac_status*x.protected > 0 ? x.vac_eff_symp[x.strain][x.vac_status][x.protected] : 0.0
         auxiliar = (1-aux)
@@ -1164,7 +1171,34 @@ function move_to_pre(x::Human)
 
 
     if x.recovered
-        auxiliar = (1-p.vac_efficacy_sev[1][1][2][end])
+        if y.days_recovered <= y.days_vac
+            index = Int(floor(y.days_recovered/7))
+            if index > 0
+                if index <= size(waning_factors,1)
+                    aux = waning_factors[index,3]
+                else
+                    aux = waning_factors[end,3]
+                end
+            else
+                aux = 1.0
+            end
+        else
+            if y.vac_status*y.protected > 0
+                aux = y.vac_eff_sev[x.strain][y.vac_status][y.protected]
+            else
+                index = Int(floor(y.days_recovered/7))
+                if index > 0
+                    if index <= size(waning_factors,1)
+                        aux = waning_factors[index,3]
+                    else
+                        aux = waning_factors[end,3]
+                    end
+                else
+                    aux = 1.0
+                end
+            end
+        end
+        auxiliar = (1-aux)
     else
         aux = x.vac_status*x.protected > 0 ? x.vac_eff_sev[x.strain][x.vac_status][x.protected] : 0.0
         auxiliar = (1-aux)
@@ -1473,9 +1507,9 @@ function move_to_recovered(h::Human)
     h.health = h.swap
     h.health_status = h.swap_status
 
-    if h.strain in (1,2)
-        h.recovered = true
-    end
+    
+    h.recovered = true
+    h.days_recovered = 0
 
     h.swap = UNDEF
     h.swap_status = UNDEF
@@ -1618,8 +1652,37 @@ function dyntrans(sys_time, grps,sim)
                     if y.health == SUS && y.swap == UNDEF
                         aux = y.vac_status*y.protected > 0 ? y.vac_eff_inf[x.strain][y.vac_status][y.protected] : 0.0
                         adj_beta = beta*(1-aux)
-                    elseif (x.strain in (3,4,6) && y.health in (REC, REC2, REC5) && y.swap == UNDEF)
-                        adj_beta = beta*(p.reduction_recovered) #0.21
+                    elseif y.health_status == REC  && y.swap == UNDEF
+
+                        if y.days_recovered <= y.days_vac
+                            index = Int(floor(y.days_recovered/7))
+                            if index > 0
+                                if index <= size(waning_factors,1)
+                                    aux = waning_factors[index,1]
+                                else
+                                    aux = waning_factors[end,1]
+                                end
+                            else
+                                aux = 1.0
+                            end
+                        else
+                            if y.vac_status*y.protected > 0
+                                aux = y.vac_eff_inf[x.strain][y.vac_status][y.protected]
+                            else
+                                index = Int(floor(y.days_recovered/7))
+                                if index > 0
+                                    if index <= size(waning_factors,1)
+                                        aux = waning_factors[index,1]
+                                    else
+                                        aux = waning_factors[end,1]
+                                    end
+                                else
+                                    aux = 1.0
+                                end
+                            end
+                        end
+
+                        adj_beta = beta*(1-aux) #0.21
                     end
 
                     if rand() < adj_beta
