@@ -1083,8 +1083,8 @@ function move_to_latent(x::Human)
     g = findfirst(y-> y >= x.age, age_thres)
 
     if x.recovered
-        if y.days_recovered <= y.days_vac
-            index = Int(floor(y.days_recovered/7))
+        if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
+            index = Int(floor(x.days_recovered/7))
             if index > 0
                 if index <= size(waning_factors,1)
                     aux = waning_factors[index,3]
@@ -1094,21 +1094,8 @@ function move_to_latent(x::Human)
             else
                 aux = 1.0
             end
-        else
-            if y.vac_status*y.protected > 0
-                aux = y.vac_eff_symp[x.strain][y.vac_status][y.protected]
-            else
-                index = Int(floor(y.days_recovered/7))
-                if index > 0
-                    if index <= size(waning_factors,1)
-                        aux = waning_factors[index,3]
-                    else
-                        aux = waning_factors[end,3]
-                    end
-                else
-                    aux = 1.0
-                end
-            end
+        else 
+            aux = x.vac_eff_symp[x.strain][x.vac_status][x.protected]
         end
         auxiliar = (1-aux)
     else
@@ -1171,8 +1158,8 @@ function move_to_pre(x::Human)
 
 
     if x.recovered
-        if y.days_recovered <= y.days_vac
-            index = Int(floor(y.days_recovered/7))
+        if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
+            index = Int(floor(x.days_recovered/7))
             if index > 0
                 if index <= size(waning_factors,1)
                     aux = waning_factors[index,3]
@@ -1183,20 +1170,7 @@ function move_to_pre(x::Human)
                 aux = 1.0
             end
         else
-            if y.vac_status*y.protected > 0
-                aux = y.vac_eff_sev[x.strain][y.vac_status][y.protected]
-            else
-                index = Int(floor(y.days_recovered/7))
-                if index > 0
-                    if index <= size(waning_factors,1)
-                        aux = waning_factors[index,3]
-                    else
-                        aux = waning_factors[end,3]
-                    end
-                else
-                    aux = 1.0
-                end
-            end
+            aux = x.vac_eff_sev[x.strain][x.vac_status][x.protected]
         end
         auxiliar = (1-aux)
     else
@@ -1654,7 +1628,7 @@ function dyntrans(sys_time, grps,sim)
                         adj_beta = beta*(1-aux)
                     elseif y.health_status == REC  && y.swap == UNDEF
 
-                        if y.days_recovered <= y.days_vac
+                        if y.vac_status*y.protected == 0 ||  y.days_recovered <= y.days_vac
                             index = Int(floor(y.days_recovered/7))
                             if index > 0
                                 if index <= size(waning_factors,1)
@@ -1666,20 +1640,7 @@ function dyntrans(sys_time, grps,sim)
                                 aux = 1.0
                             end
                         else
-                            if y.vac_status*y.protected > 0
-                                aux = y.vac_eff_inf[x.strain][y.vac_status][y.protected]
-                            else
-                                index = Int(floor(y.days_recovered/7))
-                                if index > 0
-                                    if index <= size(waning_factors,1)
-                                        aux = waning_factors[index,1]
-                                    else
-                                        aux = waning_factors[end,1]
-                                    end
-                                else
-                                    aux = 1.0
-                                end
-                            end
+                            aux = y.vac_eff_inf[x.strain][y.vac_status][y.protected]
                         end
 
                         adj_beta = beta*(1-aux) #0.21
