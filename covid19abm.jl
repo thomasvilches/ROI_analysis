@@ -210,19 +210,29 @@ function runsim(simnum, ip::ModelParameters)
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
     #ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
     range_work = 18:65
-    ags = map(x-> x.age in range_work ? 1 : 2,humans)
-    
+    ags = zeros(Int64,length(humans))#map(x-> x.age in range_work ? 1 : 2,humans)
+    for i = 1:length(ags)
+        if humans[i].age < 18
+            ags[i] = 2
+        elseif humans[i].age <=65
+            ags[i] = 1
+        else
+            ags[i] = 3
+        end
+    end
+
     all = _collectdf(hmatrix)
     spl = _splitstate(hmatrix, ags)
     ag1 = _collectdf(spl[1])
+    ag2 = _collectdf(spl[2])
     #=ag1 = _collectdf(spl[1])
      ag2 = _collectdf(spl[2])
     ag3 = _collectdf(spl[3])
     ag4 = _collectdf(spl[4])
     ag5 = _collectdf(spl[5])
     ag6 = _collectdf(spl[6]) =#
-    insertcols!(all, 1, :sim => simnum); insertcols!(ag1, 1, :sim => simnum);#= insertcols!(ag2, 1, :sim => simnum); 
-    insertcols!(ag3, 1, :sim => simnum); insertcols!(ag4, 1, :sim => simnum); insertcols!(ag5, 1, :sim => simnum);
+    insertcols!(all, 1, :sim => simnum); insertcols!(ag1, 1, :sim => simnum); insertcols!(ag2, 1, :sim => simnum); 
+  #=  insertcols!(ag3, 1, :sim => simnum); insertcols!(ag4, 1, :sim => simnum); insertcols!(ag5, 1, :sim => simnum);
     insertcols!(ag6, 1, :sim => simnum);
  =#
     
@@ -296,7 +306,7 @@ function runsim(simnum, ip::ModelParameters)
 
     years_w_lost = sum(map(y-> max(0,range_work[end]-max(humans[y].age,range_work[1])),aux))
 
-    return (a=all, g1=ag1,# g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,   
+    return (a=all, g1=ag1, g2=ag2,# g3=ag3, g4=ag4, g5=ag5,g6=ag6,   
     R01 = R01,
     R02 = R02, cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
