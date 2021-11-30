@@ -31,5 +31,7 @@ A time-varing proportion of vaccines (brand) was implemented.
 
 ## Waning immunity of recovered people was implemented and the system was recalibrated.
 
+## I am adding US data to the system  and calibrating it
+
 **Still Organizing ROI**
 
