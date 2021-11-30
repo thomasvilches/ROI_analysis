@@ -29,7 +29,7 @@ The branch `NYC` has data for NYC and the model is calibrated.
 Huge Changes in vac_time were made.
 A time-varing proportion of vaccines (brand) was implemented.
 
-## Implementing waning immunity for recovered people!
+## Waning immunity of recovered people was implemented and the system was recalibrated.
 
 **Still Organizing ROI**
 
