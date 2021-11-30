@@ -26511,3 +26511,9 @@ function waning_factor()
 
     return M
 end
+
+function waning_factor_rec()
+
+    M = [0.0 0.0 0.861]
+    return M
+end

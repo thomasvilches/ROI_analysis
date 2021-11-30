@@ -194,6 +194,7 @@ const agebraks = @SVector [0:4, 5:19, 20:49, 50:64, 65:99]
 const BETAS = Array{Float64, 1}(undef, 0) ## to hold betas (whether fixed or seasonal), array will get resized
 const ct_data = ct_data_collect()
 const waning_factors = waning_factor()
+const waning_factors_rec = waning_factor()
 export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
@@ -1086,10 +1087,10 @@ function move_to_latent(x::Human)
         if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
             index = Int(floor(x.days_recovered/7))
             if index > 0
-                if index <= size(waning_factors,1)
-                    aux = waning_factors[index,3]
+                if index <= size(waning_factors_rec,1)
+                    aux = waning_factors_rec[index,3]
                 else
-                    aux = waning_factors[end,3]
+                    aux = waning_factors_rec[end,3]
                 end
             else
                 aux = 1.0
@@ -1161,10 +1162,10 @@ function move_to_pre(x::Human)
         if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
             index = Int(floor(x.days_recovered/7))
             if index > 0
-                if index <= size(waning_factors,1)
-                    aux = waning_factors[index,3]
+                if index <= size(waning_factors_rec,1)
+                    aux = waning_factors_rec[index,3]
                 else
-                    aux = waning_factors[end,3]
+                    aux = waning_factors_rec[end,3]
                 end
             else
                 aux = 1.0
@@ -1631,10 +1632,10 @@ function dyntrans(sys_time, grps,sim)
                         if y.vac_status*y.protected == 0 ||  y.days_recovered <= y.days_vac
                             index = Int(floor(y.days_recovered/7))
                             if index > 0
-                                if index <= size(waning_factors,1)
-                                    aux = waning_factors[index,1]
+                                if index <= size(waning_factors_rec,1)
+                                    aux = waning_factors_rec[index,1]
                                 else
-                                    aux = waning_factors[end,1]
+                                    aux = waning_factors_rec[end,1]
                                 end
                             else
                                 aux = 1.0
