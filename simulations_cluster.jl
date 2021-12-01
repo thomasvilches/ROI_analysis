@@ -41,16 +41,18 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     #writedlm("$(folderprefix)/ctnumbers.dat", [cdr[i].ct_numbers for i = 1:nsims])    
     ## stack the sims together
     allag = vcat([cdr[i].a  for i = 1:nsims]...)
-    working = vcat([cdr[i].g1 for i = 1:nsims]...)
-    kids = vcat([cdr[i].g2 for i = 1:nsims]...)
-    #= ag2 = vcat([cdr[i].g2 for i = 1:nsims]...)
+    working = vcat([cdr[i].work for i = 1:nsims]...)
+   
+    ag1 = vcat([cdr[i].g1 for i = 1:nsims]...)
+    ag2 = vcat([cdr[i].g2 for i = 1:nsims]...)
     ag3 = vcat([cdr[i].g3 for i = 1:nsims]...)
     ag4 = vcat([cdr[i].g4 for i = 1:nsims]...)
     ag5 = vcat([cdr[i].g5 for i = 1:nsims]...)
-    ag6 = vcat([cdr[i].g6 for i = 1:nsims]...) =#
+    ag6 = vcat([cdr[i].g6 for i = 1:nsims]...)
+    ag7 = vcat([cdr[i].g7 for i = 1:nsims]...) 
 
-    #mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6)
-    mydfs = Dict("all" => allag, "working"=>working, "kids"=>kids)
+    mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6,"ag7" => ag7, "working"=>working)
+    #mydfs = Dict("all" => allag, "working"=>working, "kids"=>kids)
     #mydfs = Dict("all" => allag)
     
     ## save at the simulation and time level
