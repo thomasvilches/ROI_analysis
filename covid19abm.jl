@@ -205,7 +205,7 @@ function runsim(simnum, ip::ModelParameters)
     # get simulation age groups
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
     #ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
-    range_work = 18:65
+    range_work = 18:64
     ags = map(x-> x.age in range_work ? 1 : 2,humans)
 
     all = _collectdf(hmatrix)
