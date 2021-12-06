@@ -1161,7 +1161,7 @@ function move_to_pre(x::Human)
 
 
     if x.recovered
-        if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
+        #= if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
             index = Int(floor(x.days_recovered/7))
             if index > 0
                 if index <= size(waning_factors_rec,1)
@@ -1174,8 +1174,8 @@ function move_to_pre(x::Human)
             end
         else
             aux = x.vac_eff_sev[x.strain][x.vac_status][x.protected]
-        end
-        auxiliar = (1-aux)
+        end =#
+        auxiliar = 0.0#(1-aux)
     else
         aux = x.vac_status*x.protected > 0 ? x.vac_eff_sev[x.strain][x.vac_status][x.protected] : 0.0
         auxiliar = (1-aux)
@@ -1332,7 +1332,7 @@ function move_to_inf(x::Human)
        
     else ## no hospital for this lucky (but severe) individual 
         aux = (p.mortality_inc^Int(x.strain==2 || x.strain == 4))
-        aux = x.strain == 4 ? aux*7.0 : aux
+        aux = x.strain == 4 ? aux*1.0 : aux
         if x.iso || rand() < p.fsevere 
             x.exp = 1  ## 1 day isolation for severe cases 
             aux_v = [IISO;IISO2;IISO3;IISO4;IISO5;IISO6]
@@ -1368,7 +1368,7 @@ function move_to_iiso(x::Human)
     
     mh = [0.0002; 0.0015; 0.011; 0.0802; 0.381] # death rate for severe cases.
     aux = (p.mortality_inc^Int(x.strain==2 || x.strain == 4))
-    aux = x.strain == 4 ? aux*7.0 : aux
+    aux = x.strain == 4 ? aux*1.0 : aux
 
     if rand() < mh[gg]*aux
         x.exp = x.dur[4] 
@@ -1405,8 +1405,8 @@ function move_to_hospicu(x::Human)
         mc = 0.5*[0.0033, 0.0033, 0.0036, 0.0131, 0.022, 0.04, 0.2, 0.70]
         
         if x.strain == 4
-            mh = 7*mh
-            mc = 7*mc
+            mh = 1.0*mh
+            mc = 1.0*mc
         end
 
     else

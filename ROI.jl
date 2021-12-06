@@ -36,15 +36,18 @@ using Bootstrap
     hosp_daily_cost = 1000.0
     icu_daily_cost = 2000.0
 
-    hosp_cost = 66265.521
-    icu_cost = 215655.624
+    hosp_cost = 39499.18
+    icu_cost = 113249.31
 
     prop_long_treatment = 0.5
     long_covid_treatment_cost = 10000.0
     disability_weight = 0.5
 
     number_of_outpatient_visits = 1.0
-    cost_visit = 2481.153
+    cost_visit = 1020.19 #one for each with symptoms
+    cost_ED_care = 3305.01 #one for each severe
+    round_trip = 44.49 #round trip to hospital
+    
 end
 
 const p_roi =  ROIParameters()
