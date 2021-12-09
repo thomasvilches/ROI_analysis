@@ -130,7 +130,7 @@ function create_folder(ip::cv.ModelParameters,province="newyorkcity",calibrating
     main_folder = "/data/thomas-covid/ROI"
     #main_folder = "."
     if calibrating
-        RF = string(main_folder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_herd_immu_","_$(ip.file_index)_$(province)") ##  
+        RF = string(main_folder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_$(ip.file_index)_$(province)") ##  
     else
         RF = string(main_folder,"/results_prob_$(ip.file_index)_$(province)") ##  
     end
