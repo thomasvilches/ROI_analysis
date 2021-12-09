@@ -28,8 +28,9 @@ using Bootstrap
     lost_days_AR = 2.0 #Number of working days lost due to reaction
 
     #####
-    governamental_costs = 1.8e7 ###need to look at the table and calculate it
-    cost_loss_day = 100.0 ##GDP based
+    GDP_pc = 74472
+    governamental_costs = 397598420.02 ###need to look at the table and calculate it
+    cost_loss_day = GDP_pc/365 ##GDP based
 
     ##
     lost_days_symptomatic = 10.0 ##we must be carefull
@@ -38,6 +39,8 @@ using Bootstrap
 
     hosp_cost = 39499.18
     icu_cost = 113249.31
+    percentage_working_people = 0.7176
+
 
     prop_long_treatment = 0.5
     long_covid_treatment_cost = 10000.0
@@ -46,7 +49,10 @@ using Bootstrap
     number_of_outpatient_visits = 1.0
     cost_visit = 1020.19 #one for each with symptoms
     cost_ED_care = 3305.01 #one for each severe
-    round_trip = 44.49 #round trip to hospital
+    round_trip = 44.49 #round trip to hospital symp
+
+   proportion_EMS = 2.5 #per hospitalization
+   cost_EMS = 900.0
     
 end
 
