@@ -759,47 +759,30 @@ function herd_immu_dist_4(sim::Int64,strain::Int64)
     rng = MersenneTwister(200*sim)
     vec_n = zeros(Int32,6)
     N::Int64 = 0
-    if p.herd == 5
-        vec_n = [9; 148; 262;  68; 4; 9]
-        N = 5
+    
+    ag_b = [0:17,18:44,45:64,65:100]
+    prop_herd = [0.2;0.264;0.25;0.151]
+    pos = map(x-> findall(y->y.age in x, humans),ag_b)
+    vprob::Vector{Float64} = vector_probs()
 
-    elseif p.herd == 10
-        vec_n = [32; 279; 489; 143; 24; 33]
+    for j in 1:length(pos)
+        nn = Int(round(prop_herd[j]*length(pos[j])))
+        pos2 = sample(rng,pos[j],nn,replace=false)
 
-        N = 9
-
-    elseif p.herd == 20
-        vec_n = [71; 531; 962; 302; 57; 77]
-
-        N = 14
-    elseif p.herd == 30
-        vec_n = [105; 757; 1448; 481; 87; 122]
-
-        N = 16
-    elseif p.herd == 50
-        vec_n = map(y->y*5,[32; 279; 489; 143; 24; 33])
-
-        N = 16
-    elseif p.herd == 0
-        vec_n = [0;0;0;0;0;0]
-       
-    else
-        vec_n = map(y->Int(round(y*p.herd/10)),[32; 279; 489; 143; 24; 33])
-        N = 16
-    end
-
-    for g = 1:6
-        pos = findall(y->y.ag_new == g && y.health == SUS,humans)
-        n_dist = min(length(pos),Int(floor(vec_n[g]*p.popsize/10000)))
-        pos2 = sample(rng,pos,n_dist,replace=false)
         for i = pos2
             humans[i].strain = strain
             humans[i].swap = strain == 1 ? REC : REC2
+            humans[i].swap_status = REC
             move_to_recovered(humans[i])
+            r = rand()
+            day = findfirst(y-> y > r, vprob)
+            humans[i].days_recovered = day
             humans[i].sickfrom = INF
             humans[i].herd_im = true
         end
     end
+
+    
     return N
 end
 
