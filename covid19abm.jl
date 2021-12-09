@@ -61,7 +61,6 @@ end
     start_several_inf::Bool = true
     modeltime::Int64 = 435
     initialinf::Int64 = 20
-    initialhi::Int64 = 20 ## initial herd immunity, inserts number of REC individuals
     τmild::Int64 = 0 ## days before they self-isolate for mild cases
     fmild::Float64 = 0.0  ## percent of people practice self-isolation
     fsevere::Float64 = 0.0 #
@@ -78,7 +77,6 @@ end
     #vaccine_ef::Float16 = 0.0   ## change this to Float32 typemax(Float32) typemax(Float64)
     vac_com_dec_max::Float16 = 0.0 # how much the comorbidity decreases the vac eff
     vac_com_dec_min::Float16 = 0.0 # how much the comorbidity decreases the vac eff
-    herd::Int8 = 0 #typemax(Int32) ~ millions
     file_index::Int16 = 0
     nstrains::Int16 = 6
     
