@@ -302,7 +302,7 @@ function runsim(simnum, ip::ModelParameters)
 
     #years_w_lost = sum(map(y-> max(0,range_work[end]-max(humans[y].age,range_work[1])),aux))
 
-    vector_ded = [x.health_status == DED ? x.age : missing for x in humans]
+    vector_ded = [x.health_status == DED ? x.age : 9999 for x in humans]
 
     return (a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,
     R01 = R01,
@@ -310,7 +310,8 @@ function runsim(simnum, ip::ModelParameters)
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
     n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,#years_w_lost = years_w_lost, 
     remaining = remaining_doses, 
-    total_given = total_given, vector_dead=vector_ded)
+    vector_dead=vector_ded,
+    total_given = total_given)
 end
 export runsim
 
