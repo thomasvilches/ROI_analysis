@@ -118,7 +118,10 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     writedlm(string(folderprefix,"/vaccine_all.dat"),[vac_p vac_m vac_j vac_p_2 vac_m_2 vac_j_2 remaining total])
     writedlm(string(folderprefix,"/vaccine_working.dat"),[vac_p_w vac_m_w vac_j_w vac_p_w_2 vac_m_w_2 vac_j_w_2])
 
-    writedlm(string(folderprefix,"/year_of_work.dat"),[cdr[i].years_w_lost for i=1:nsims])
+    writedlm(string(folderprefix,"/year_of_death.dat"),hcat([cdr[i].vector_dead for i=1:nsims]...))
+    #writedlm(string(folderprefix,"/year_of_work.dat"),[cdr[i].years_w_lost for i=1:nsims])
+
+
 
     return mydfs
 end

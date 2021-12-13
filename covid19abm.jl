@@ -157,7 +157,7 @@ end
 
     relax_over::Int64 = 92
     relax_rate::Float64 = (1-contact_change_2)/relax_over
-    turnon::Int64 = 0
+    turnon::Int64 = 1
     time_back_to_normal::Int64 = 999
 
     day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
@@ -173,7 +173,7 @@ end
 
     #one waning rate for each efficacy? For each strain? I can change this structure based on that
 
-    waning::Int64 = 0
+    waning::Int64 = 1
     ### after calibration, how much do we want to increase the contact rate... in this case, to reach 70%
     ### 0.5*0.95 = 0.475, so we want to multiply this by 1.473684211
 end
@@ -298,15 +298,19 @@ function runsim(simnum, ip::ModelParameters)
     aux =  findall(x-> x.vaccine_n == 3 && x.age in range_work && x.vac_status == 2, humans)
     n_jensen_w_2 = length(aux)
 
-    aux = findall(x-> x.health == DED,humans)
+    #aux = findall(x-> x.health == DED,humans)
 
-    years_w_lost = sum(map(y-> max(0,range_work[end]-max(humans[y].age,range_work[1])),aux))
+    #years_w_lost = sum(map(y-> max(0,range_work[end]-max(humans[y].age,range_work[1])),aux))
+
+    vector_ded = [x.health_status == DED ? x.age : missing for x in humans]
 
     return (a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,
     R01 = R01,
     R02 = R02, cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
-    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,years_w_lost = years_w_lost, remaining = remaining_doses, total_given = total_given)
+    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,#years_w_lost = years_w_lost, 
+    remaining = remaining_doses, 
+    total_given = total_given, vector_dead=vector_ded)
 end
 export runsim
 
