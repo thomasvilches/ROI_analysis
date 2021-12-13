@@ -48,6 +48,8 @@ Base.@kwdef mutable struct Human
     vac_eff_inf::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_symp::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_sev::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
+
+    boosted::Bool = false
 end
 
 ## default system parameters
@@ -125,6 +127,9 @@ end
     vaccine_proportion::Vector{Float64} = [0.59;0.33;0.08]
     vaccine_proportion_2::Vector{Float64} = [0.63;0.37;0.0]
     vac_period::Array{Int64,1} = [21;28;999]
+    booster_after::Array{Int64,1} = [180;180;999]
+    vac_boost::Bool = true
+    min_age_booster::Int64 = 16
     #=------------ Vaccine Efficacy ----------------------------=#
     days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14],[0;7]],[[14],[0;14]],[[14]]]
     vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.861]],[[0.368],[0.48;0.736]]],
@@ -416,7 +421,7 @@ function main(ip::ModelParameters,sim::Int64)
 
         time_vac += 1
         if time_pos > 0 
-            aux_ =  vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2)
+            aux_ =  vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2,vac_rate_booster)
             remaining_doses += aux_[1]
             total_given += aux_[2]
         end
@@ -479,7 +484,7 @@ function vac_selection(sim::Int64,age::Int64,agebraks_vac)
 end
 
 
-function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac_rate_1::Matrix{Int64},vac_rate_2::Matrix{Int64})
+function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac_rate_1::Matrix{Int64},vac_rate_2::Matrix{Int64},vac_rate_booster::Vector{Int64})
     aux_states = (MILD, MISO, INF, IISO, HOS, ICU, DED)
     ##first dose
    # rng = MersenneTwister(123*sim)
@@ -599,6 +604,9 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         position = map(k-> vac_ind[k][pos[k]],aux)
         position2 = map(k-> vac_ind[k][pos2[k]],aux)
         r = vcat(position...,position2...)
+
+        length(r) == 0 && continue
+
         rr = sample(r)
         x = humans[rr]
         if x.vac_status == 0
@@ -630,6 +638,24 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
     if total_given != t
         error("vaccination")
     end
+
+
+    ### Let's add booster... those are extra doses, we don't care about missing doses
+
+    pos = findall(y-> y.vac_status == 2 && y.days_vac >= p.booster_after[y.vaccine_n] && y.age >= p.min_age_booster && !(p.vac_boost && y.boosted) && !(y.health_status in aux_states),humans)
+
+    l2 = min(vac_rate_booster[time_pos]+remaining_doses,length(pos))
+    pos = sample(pos,l2,replace=false)
+
+    for i in pos
+        x = humans[i]
+        x.days_vac = 0
+        x.boosted = true
+        x.vac_eff_inf = deepcopy(p.vac_efficacy_inf[x.vaccine_n])
+        x.vac_eff_symp = deepcopy(p.vac_efficacy_symp[x.vaccine_n])
+        x.vac_eff_sev = deepcopy(p.vac_efficacy_sev[x.vaccine_n])
+    end
+
    
 
     return remaining_doses,total_given
@@ -1146,7 +1172,7 @@ function move_to_pre(x::Human)
     x.exp = x.dur[3] # get the presymptomatic period
 
 
-    if x.recovered
+    if x.recovered || x.boosted
         #= if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
             index = Int(floor(x.days_recovered/7))
             if index > 0
