@@ -162,6 +162,7 @@ end
 
     day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
     time_vac_kids::Int64 = 253
+    time_vac_kids2::Int64 = 428
     using_jj::Bool = false
 
     α::Float64 = 1.0
@@ -415,8 +416,12 @@ function main(ip::ModelParameters,sim::Int64)
             time_prop += 1
         end
 
-        if p.vaccinating && st == p.time_vac_kids 
-            vac_ind = vac_selection(sim,12,agebraks_vac)
+        if p.vaccinating
+            if st == p.time_vac_kids 
+                vac_ind = vac_selection(sim,12,agebraks_vac)
+            elseif st == p.time_vac_kids2
+                vac_ind = vac_selection(sim,5,agebraks_vac)
+            end
         end
 
         time_vac += 1
