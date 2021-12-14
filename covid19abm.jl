@@ -203,6 +203,7 @@ export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
+    
     hmatrix,hh1,hh2,hh3,hh4,remaining_doses,total_given = main(ip,simnum)            
 
     ###use here to create the vector of comorbidity
@@ -302,7 +303,14 @@ function runsim(simnum, ip::ModelParameters)
 
     #years_w_lost = sum(map(y-> max(0,range_work[end]-max(humans[y].age,range_work[1])),aux))
 
-    vector_ded = [x.health_status == DED ? x.age : 9999 for x in humans]
+    pos = findall(y-> y in (11,22,33,44,55,66),hmatrix[:,end])
+
+    vector_ded::Vector{Int64} = zeros(Int64,100)
+
+    for i = pos
+        x = humans[i]
+        vector_ded[(x.age+1)] += 1
+    end
 
     return (a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,
     R01 = R01,
