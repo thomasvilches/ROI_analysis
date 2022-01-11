@@ -217,6 +217,11 @@ function runsim(simnum, ip::ModelParameters)
     spl = _splitstate(hmatrix, ags)
     work = _collectdf(spl[1])
     
+    vacv = map(x-> x.vac_status>0 ? 1 : 2,humans)
+    spl = _splitstate(hmatrix, vacv)
+    vac = _collectdf(spl[1])
+    unvac = _collectdf(spl[2])
+    
 
     age_groups = [0:4, 5:11, 12:17, 18:49, 50:64, 65:79, 80:999]
     ags = map(x->findfirst(y-> x.age in y, age_groups),humans) # store a vector of the age group distribution 
@@ -231,7 +236,7 @@ function runsim(simnum, ip::ModelParameters)
     insertcols!(all, 1, :sim => simnum); insertcols!(ag1, 1, :sim => simnum); insertcols!(ag2, 1, :sim => simnum); 
     insertcols!(ag3, 1, :sim => simnum); insertcols!(ag4, 1, :sim => simnum); insertcols!(ag5, 1, :sim => simnum);
     insertcols!(ag6, 1, :sim => simnum); insertcols!(ag7, 1, :sim => simnum); insertcols!(work, 1, :sim => simnum);
- 
+    insertcols!(vac, 1, :sim => simnum); insertcols!(unvac, 1, :sim => simnum);
     
     R01 = zeros(Float64,size(hh1,1))
 
@@ -319,7 +324,7 @@ function runsim(simnum, ip::ModelParameters)
     n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,#years_w_lost = years_w_lost, 
     remaining = remaining_doses, 
     vector_dead=vector_ded,
-    total_given = total_given)
+    total_given = total_given,vaccinated=vac,unvaccinated=unvac)
 end
 export runsim
 
