@@ -42,9 +42,6 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     ## stack the sims together
     allag = vcat([cdr[i].a  for i = 1:nsims]...)
     working = vcat([cdr[i].work for i = 1:nsims]...)
-    vaccinated = vcat([cdr[i].vaccinated for i = 1:nsims]...)
-    unvaccinated = vcat([cdr[i].unvaccinated for i = 1:nsims]...)
-   
    
     ag1 = vcat([cdr[i].g1 for i = 1:nsims]...)
     ag2 = vcat([cdr[i].g2 for i = 1:nsims]...)
@@ -54,7 +51,7 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     ag6 = vcat([cdr[i].g6 for i = 1:nsims]...)
     ag7 = vcat([cdr[i].g7 for i = 1:nsims]...) 
 
-    mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6,"ag7" => ag7, "working"=>working,"vaccinated"=>vaccinated,"unvaccinated"=>unvaccinated)
+    mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6,"ag7" => ag7, "working"=>working)
     #mydfs = Dict("all" => allag, "working"=>working, "kids"=>kids)
     #mydfs = Dict("all" => allag)
     
@@ -63,8 +60,8 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     #c1 = Symbol.((:LAT, :ASYMP, :INF, :PRE, :MILD,:IISO, :HOS, :ICU, :DED), :_INC)
     #c2 = Symbol.((:LAT, :ASYMP, :INF, :PRE, :MILD,:IISO, :HOS, :ICU, :DED), :_PREV)
     
-    c1 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2,:LAT3, :HOS3, :ICU3, :DED3,:LAT4, :HOS4, :ICU4, :DED4,:LAT5, :HOS5, :ICU5, :DED5,:LAT6, :HOS6, :ICU6, :DED6), :_INC)
-    c2 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2,:LAT3, :HOS3, :ICU3, :DED3,:LAT4, :HOS4, :ICU4, :DED4,:LAT5, :HOS5, :ICU5, :DED5,:LAT6, :HOS6, :ICU6, :DED6), :_PREV)
+    c1 = Symbol.((:LAT, :MILD, :INF, :HOS, :ICU, :DED,:LAT2, :MILD2, :INF2, :HOS2, :ICU2, :DED2,:LAT3, :MILD3, :INF3, :HOS3, :ICU3, :DED3,:LAT4, :MILD4, :INF4, :HOS4, :ICU4, :DED4,:LAT5, :MILD5, :INF5, :HOS5, :ICU5, :DED5,:LAT6, :MILD6, :INF6, :HOS6, :ICU6, :DED6), :_INC)
+    c2 = Symbol.((:LAT, :MILD, :INF, :HOS, :ICU, :DED,:LAT2, :MILD2, :INF2, :HOS2, :ICU2, :DED2,:LAT3, :MILD3, :INF3, :HOS3, :ICU3, :DED3,:LAT4, :MILD4, :INF4, :HOS4, :ICU4, :DED4,:LAT5, :MILD5, :INF5, :HOS5, :ICU5, :DED5,:LAT6, :MILD6, :INF6, :HOS6, :ICU6, :DED6), :_PREV)
     
     #c2 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2), :_PREV)
     for (k, df) in mydfs
@@ -84,12 +81,6 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
         #CSV.write(fn, yaf)       
     end
     
-   
-    R01 = [cdr[i].R01 for i=1:nsims]
-    R02 = [cdr[i].R02 for i=1:nsims]
-    writedlm(string(folderprefix,"/R01.dat"),R01)
-    writedlm(string(folderprefix,"/R02.dat"),R02)
-
     cov1 = [cdr[i].cov1 for i=1:nsims]
     cov2 = [cdr[i].cov2 for i=1:nsims]
     cov12 = [cdr[i].cov12 for i=1:nsims]
@@ -118,12 +109,18 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     remaining = [cdr[i].remaining for i=1:nsims]
     total = [cdr[i].total_given for i=1:nsims]
 
+
+
     writedlm(string(folderprefix,"/vaccine_all.dat"),[vac_p vac_m vac_j vac_p_2 vac_m_2 vac_j_2 remaining total])
     writedlm(string(folderprefix,"/vaccine_working.dat"),[vac_p_w vac_m_w vac_j_w vac_p_w_2 vac_m_w_2 vac_j_w_2])
 
     writedlm(string(folderprefix,"/year_of_death.dat"),hcat([cdr[i].vector_dead for i=1:nsims]...))
-    
 
+    writedlm(string(folderprefix,"/unvac_r.dat"),[cdr[i].unvac_r for i=1:nsims])
+    writedlm(string(folderprefix,"/unvac_nr.dat"),[cdr[i].unvac_nr for i=1:nsims])
+    writedlm(string(folderprefix,"/vac_1.dat"),[cdr[i].vac_1 for i=1:nsims])
+    writedlm(string(folderprefix,"/vac_2.dat"),[cdr[i].vac_2 for i=1:nsims])
+    writedlm(string(folderprefix,"/vac_3.dat"),[cdr[i].vac_3 for i=1:nsims])
 
     return mydfs
 end

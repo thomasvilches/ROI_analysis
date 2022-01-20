@@ -44,12 +44,13 @@ Base.@kwdef mutable struct Human
     vaccine_n::Int16 = 0
     protected::Int64 = 0
     days_recovered::Int64 = -1
+    boosted::Bool = false
+    n_boosted::Int64 = 0
+    recvac::Int64 = 0 # 1 - rec , 2 - vac ... this field shows which immunity will be used for protection
 
     vac_eff_inf::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_symp::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_sev::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
-
-    boosted::Bool = false
 end
 
 ## default system parameters
@@ -71,14 +72,11 @@ end
     fpreiso::Float64 = 0.0 ## percent that is isolated at the presymptomatic stage
     tpreiso::Int64 = 0## preiso is only turned on at this time. 
     frelasymp::Float64 = 0.26 ## relative transmission of asymptomatic
-    ctstrat::Int8 = 0 ## strategy 
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
-    fcontactst::Float16 = 0.0 ## fraction of contacts being isolated/quarantined
-    cidtime::Int8 = 0  ## time to identification (for CT) post symptom onset
-    cdaysback::Int8 = 0 ## number of days to go back and collect contacts
     #vaccine_ef::Float16 = 0.0   ## change this to Float32 typemax(Float32) typemax(Float64)
     vac_com_dec_max::Float16 = 0.0 # how much the comorbidity decreases the vac eff
     vac_com_dec_min::Float16 = 0.0 # how much the comorbidity decreases the vac eff
+    herd::Int8 = 0 #typemax(Int32) ~ millions
     file_index::Int16 = 0
     nstrains::Int16 = 6
     
@@ -102,8 +100,7 @@ end
     initialinf3::Int64 = 5 #number of initial infected of third strain
     time_third_strain::Int64 = 999 #when will the third strain introduced - P1 March 20
     third_strain_trans::Float64 = 1.6 #transmissibility of third strain
-    reduction_recovered::Float64 = 0.21
-
+    
     ## Delta - B.1.617.2
     ins_fourth_strain::Bool = true #insert fourth strain?
     initialinf4::Int64 = 1 #number of initial infected of fourth strain
@@ -128,20 +125,24 @@ end
     vaccine_proportion_2::Vector{Float64} = [0.63;0.37;0.0]
     vac_period::Array{Int64,1} = [21;28;999]
     booster_after::Array{Int64,1} = [180;180;999]
-    vac_boost::Bool = true
+    n_boosts::Int64 = 1
     min_age_booster::Int64 = 16
+    reduction_omicron::Float64 = 0.0 ##not using
+    reduction_reduction::Float64 = 0.0
+    #=------------ Vaccine Efficacy ----------------------------=#
+   
     #=------------ Vaccine Efficacy ----------------------------=#
     days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14],[0;7]],[[14],[0;14]],[[14]]]
-    vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.861]],[[0.368],[0.48;0.736]]],
-    [[[0.61],[0.61,0.935]],[[0.56],[0.56,0.86]],[[0.488],[0.488;0.745]],[[0.496],[0.496,0.76]],[[0.61],[0.61,0.935]],[[0.488],[0.488;0.745]]],
+    vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.861]],[[0.368],[0.48;0.64]]],
+    [[[0.61],[0.61,0.935]],[[0.56],[0.56,0.86]],[[0.488],[0.488;0.745]],[[0.496],[0.496,0.76]],[[0.61],[0.61,0.935]],[[0.496],[0.496,0.76]]],
     [[[0.61]],[[0.56]],[[0.488]],[[0.496]],[[0.61]],[[0.488]]]]#### 50:5:80
 
-    vac_efficacy_symp::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.332],[0.66;0.94]]],
-    [[[0.921],[0.921,0.941]],[[0.88],[0.88,0.91]],[[0.332],[0.66;0.94]],[[0.68],[0.68,0.70]],[[0.921],[0.921,0.941]],[[0.332],[0.66;0.94]]], #### 50:5:80
+    vac_efficacy_symp::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.335],[0.62;0.88]]],
+    [[[0.921],[0.921,0.941]],[[0.88],[0.88,0.91]],[[0.332],[0.66;0.94]],[[0.68],[0.68,0.70]],[[0.921],[0.921,0.941]],[[0.68],[0.68,0.70]]], #### 50:5:80
     [[[0.921]],[[0.88]],[[0.332]],[[0.68]],[[0.921]],[[0.332]]]] #### 50:5:80
     
-    vac_efficacy_sev::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.974]]],
-    [[[0.921],[0.921,1.0]],[[0.816],[0.816,0.957]],[[0.34],[0.68;0.974]],[[0.781],[0.781,0.916]],[[0.921],[0.921,1.0]],[[0.34],[0.68;0.974]]],#### 50:5:80
+    vac_efficacy_sev::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.80]]],
+    [[[0.921],[0.921,1.0]],[[0.816],[0.816,0.957]],[[0.34],[0.68;0.974]],[[0.781],[0.781,0.916]],[[0.921],[0.921,1.0]],[[0.781],[0.781,0.916]]],#### 50:5:80
     [[[0.921]],[[0.816]],[[0.34]],[[0.781]],[[0.921]],[[0.34]]]]#### 50:5:80
 
 
@@ -203,26 +204,19 @@ export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
-    
-    hmatrix,hh1,hh2,hh3,hh4,remaining_doses,total_given = main(ip,simnum)            
+    hmatrix, remaining_doses, total_given, unvac_rec,unvac_unrec,vac_1,vac_2,vac_3 = main(ip,simnum)            
 
     ###use here to create the vector of comorbidity
     # get simulation age groups
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
     #ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
-    range_work = 18:64
+    range_work = 18:65
     ags = map(x-> x.age in range_work ? 1 : 2,humans)
 
     all = _collectdf(hmatrix)
     spl = _splitstate(hmatrix, ags)
     work = _collectdf(spl[1])
     
-    vacv = map(x-> x.vac_status>0 ? 1 : 2,humans)
-    spl = _splitstate(hmatrix, vacv)
-    vac = _collectdf(spl[1])
-    unvac = _collectdf(spl[2])
-    
-
     age_groups = [0:4, 5:11, 12:17, 18:49, 50:64, 65:79, 80:999]
     ags = map(x->findfirst(y-> x.age in y, age_groups),humans) # store a vector of the age group distribution 
     spl = _splitstate(hmatrix, ags)
@@ -236,38 +230,7 @@ function runsim(simnum, ip::ModelParameters)
     insertcols!(all, 1, :sim => simnum); insertcols!(ag1, 1, :sim => simnum); insertcols!(ag2, 1, :sim => simnum); 
     insertcols!(ag3, 1, :sim => simnum); insertcols!(ag4, 1, :sim => simnum); insertcols!(ag5, 1, :sim => simnum);
     insertcols!(ag6, 1, :sim => simnum); insertcols!(ag7, 1, :sim => simnum); insertcols!(work, 1, :sim => simnum);
-    insertcols!(vac, 1, :sim => simnum); insertcols!(unvac, 1, :sim => simnum);
     
-    R01 = zeros(Float64,size(hh1,1))
-
-    for i = 1:size(hh1,1)
-        if length(hh1[i]) > 0
-            R01[i] = length(findall(k -> k.sickby in hh1[i],humans))/length(hh1[i])
-        end
-    end
-
-    R02 = zeros(Float64,size(hh2,1))
-
-    for i = 1:size(hh2,1)
-        if length(hh2[i]) > 0
-            R02[i] = length(findall(k -> k.sickby in hh2[i],humans))/length(hh2[i])
-        end
-    end
-
-    R03 = zeros(Float64,size(hh3,1))
-
-    for i = 1:size(hh3,1)
-        if length(hh3[i]) > 0
-            R03[i] = length(findall(k -> k.sickby in hh3[i],humans))/length(hh3[i])
-        end
-    end
-
-    R04 = zeros(Float64,size(hh4,1))
-    for i = 1:size(hh4,1)
-        if length(hh4[i]) > 0
-            R04[i] = length(findall(k -> k.sickby in hh4[i],humans))/length(hh4[i])
-        end
-    end
 
     coverage1 = length(findall(x-> x.age >= 18 && x.vac_status >= 1,humans))/length(findall(x-> x.age >= 18,humans))
     coverage2 = length(findall(x-> x.age >= 18 && x.vac_status == 2,humans))/length(findall(x-> x.age >= 18,humans))
@@ -304,10 +267,6 @@ function runsim(simnum, ip::ModelParameters)
     aux =  findall(x-> x.vaccine_n == 3 && x.age in range_work && x.vac_status == 2, humans)
     n_jensen_w_2 = length(aux)
 
-    #aux = findall(x-> x.health == DED,humans)
-
-    #years_w_lost = sum(map(y-> max(0,range_work[end]-max(humans[y].age,range_work[1])),aux))
-
     pos = findall(y-> y in (11,22,33,44,55,66),hmatrix[:,end])
 
     vector_ded::Vector{Int64} = zeros(Int64,100)
@@ -318,13 +277,10 @@ function runsim(simnum, ip::ModelParameters)
     end
 
     return (a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,
-    R01 = R01,
-    R02 = R02, cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,
+    cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,vector_dead=vector_ded,
+    unvac_nr = unvac_unrec, unvac_r=unvac_rec, vac_1 = vac_1,vac_2 = vac_2, vac_3 = vac_3,
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
-    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2,#years_w_lost = years_w_lost, 
-    remaining = remaining_doses, 
-    vector_dead=vector_ded,
-    total_given = total_given,vaccinated=vac,unvaccinated=unvac)
+    n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2, remaining = remaining_doses, total_given = total_given)
 end
 export runsim
 
@@ -345,8 +301,6 @@ function main(ip::ModelParameters,sim::Int64)
     vac_rate_2::Matrix{Int64} = vaccination_rate_2(sim)
     vac_rate_booster::Vector{Int64} = booster_doses()
     vaccination_days::Vector{Int64} = days_vac_f(size(vac_rate_1,1))
-    
-
     agebraks_vac::SVector{8, UnitRange{Int64}} = get_breaks_vac()#@SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
 
     v_prop,fd_prop,sd_prop = temporal_proportion()
@@ -379,8 +333,17 @@ function main(ip::ModelParameters,sim::Int64)
     remaining_doses::Int64 = 0
     total_given::Int64 = 0
     count_relax::Int64 = 1
+
+
+    unvac_rec::Vector{Int64} = zeros(Int64,p.modeltime)
+    unvac_unrec::Vector{Int64} = zeros(Int64,p.modeltime)
+    vac_1::Vector{Int64} = zeros(Int64,p.modeltime)
+    vac_2::Vector{Int64} = zeros(Int64,p.modeltime)
+    vac_3::Vector{Int64} = zeros(Int64,p.modeltime)
+  
+
     if p.vaccinating
-        vac_ind = vac_selection(sim,18,agebraks_vac)
+        vac_ind::Vector{Vector{Int64}} = vac_selection(sim,16,agebraks_vac)
     else
         time_vac = 9999 #this guarantees that no one will be vaccinated
     end
@@ -412,6 +375,14 @@ function main(ip::ModelParameters,sim::Int64)
             count_change += 1
         end
 
+        if p.vaccinating
+            if st == p.time_vac_kids
+                vac_ind = vac_selection(sim,12,agebraks_vac)
+            elseif st == p.time_vac_kids2
+                vac_ind = vac_selection(sim,5,agebraks_vac)
+            
+            end
+        end 
         # start of day
         #println("$st")
 
@@ -434,13 +405,6 @@ function main(ip::ModelParameters,sim::Int64)
             time_prop += 1
         end
 
-        if p.vaccinating
-            if st == p.time_vac_kids 
-                vac_ind = vac_selection(sim,12,agebraks_vac)
-            elseif st == p.time_vac_kids2
-                vac_ind = vac_selection(sim,5,agebraks_vac)
-            end
-        end
 
         time_vac += 1
         if time_pos > 0 
@@ -462,22 +426,19 @@ function main(ip::ModelParameters,sim::Int64)
        
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
         dyntrans(st, grps,sim)
-        if st in p.days_Rt ### saves individuals that became latent on days_Rt
-            aux1 = findall(x->x.swap == LAT,humans)
-            h_init1 = vcat(h_init1,[aux1])
-            aux2 = findall(x->x.swap == LAT2,humans)
-            h_init2 = vcat(h_init2,[aux2])
-            aux3 = findall(x->x.swap == LAT3,humans)
-            h_init3 = vcat(h_init3,[aux3])
-            aux4 = findall(x->x.swap == LAT4,humans)
-            h_init4 = vcat(h_init4,[aux4])
-        end
+       
         sw = time_update() ###update the system
+
+        unvac_unrec[st] = sw[2]
+        unvac_rec[st] = sw[1]
+        vac_1[st] = sw[3]
+        vac_2[st] = sw[4]
+        vac_3[st] = sw[5]
         # end of day
     end
     
     
-    return hmatrix,h_init1,h_init2,h_init3, h_init4, remaining_doses, total_given ## return the model state as well as the age groups. 
+    return hmatrix, remaining_doses, total_given, unvac_rec,unvac_unrec,vac_1,vac_2,vac_3 ## return the model state as well as the age groups. 
 end
 export main
 
@@ -564,6 +525,28 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
                 total_given += 1
                 doses_second[x.vaccine_n] -= 1
                 remaining_doses -= 1
+
+                if x.recovered
+                    index = Int(floor(x.days_recovered/7))
+
+                    if index > 0
+                        if index <= size(waning_factors_rec,1)
+                            aux = waning_factors_rec[index,1]
+                        else
+                            aux = waning_factors_rec[end,1]
+                        end
+                    else
+                        aux = 1.0
+                    end
+
+                    if aux > p.vac_efficacy_inf[x.vaccine_n][1][x.vac_status][end]
+                        x.recvac = 1
+                    else
+                        x.recvac = 2
+                    end
+                end
+
+
             else
                 break
             end
@@ -596,6 +579,27 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
                 x.vac_eff_inf = deepcopy(p.vac_efficacy_inf[x.vaccine_n])
                 x.vac_eff_symp = deepcopy(p.vac_efficacy_symp[x.vaccine_n])
                 x.vac_eff_sev = deepcopy(p.vac_efficacy_sev[x.vaccine_n])
+
+
+                if x.recovered
+                    index = Int(floor(x.days_recovered/7))
+
+                    if index > 0
+                        if index <= size(waning_factors_rec,1)
+                            aux = waning_factors_rec[index,1]
+                        else
+                            aux = waning_factors_rec[end,1]
+                        end
+                    else
+                        aux = 1.0
+                    end
+
+                    if aux > p.vac_efficacy_inf[x.vaccine_n][1][x.vac_status][end]
+                        x.recvac = 1
+                    else
+                        x.recvac = 2
+                    end
+                end
             else
                 break
             end
@@ -627,9 +631,9 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         position = map(k-> vac_ind[k][pos[k]],aux)
         position2 = map(k-> vac_ind[k][pos2[k]],aux)
         r = vcat(position...,position2...)
-
+        
         length(r) == 0 && continue
-
+            
         rr = sample(r)
         x = humans[rr]
         if x.vac_status == 0
@@ -643,6 +647,25 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
             x.vac_eff_inf = deepcopy(p.vac_efficacy_inf[x.vaccine_n])
             x.vac_eff_symp = deepcopy(p.vac_efficacy_symp[x.vaccine_n])
             x.vac_eff_sev = deepcopy(p.vac_efficacy_sev[x.vaccine_n])
+            if x.recovered
+                index = Int(floor(x.days_recovered/7))
+
+                if index > 0
+                    if index <= size(waning_factors_rec,1)
+                        aux = waning_factors_rec[index,1]
+                    else
+                        aux = waning_factors_rec[end,1]
+                    end
+                else
+                    aux = 1.0
+                end
+
+                if aux > p.vac_efficacy_inf[x.vaccine_n][1][x.vac_status][end]
+                    x.recvac = 1
+                else
+                    x.recvac = 2
+                end
+            end
         elseif x.vac_status == 1
             x.days_vac = 0
             x.vac_status = 2
@@ -650,22 +673,35 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
             remaining_doses -= 1
             total_given += 1
 
+            if x.recovered
+                index = Int(floor(x.days_recovered/7))
+
+                if index > 0
+                    if index <= size(waning_factors_rec,1)
+                        aux = waning_factors_rec[index,1]
+                    else
+                        aux = waning_factors_rec[end,1]
+                    end
+                else
+                    aux = 1.0
+                end
+
+                if aux > p.vac_efficacy_inf[x.vaccine_n][1][x.vac_status][end]
+                    x.recvac = 1
+                else
+                    x.recvac = 2
+                end
+            end
             
         else
             error("error in humans vac status - vac time")
         end
     end
 
-    t = sum(vac_rate_1[time_pos,:]+vac_rate_2[time_pos,:])
-   # println("Total $time_pos $remaining_doses $total_given $t")
-    if total_given != t
-        error("vaccination")
-    end
-
-
+   
     ### Let's add booster... those are extra doses, we don't care about missing doses
 
-    pos = findall(y-> y.vac_status == 2 && y.days_vac >= p.booster_after[y.vaccine_n] && y.age >= p.min_age_booster && !(p.vac_boost && y.boosted) && !(y.health_status in aux_states),humans)
+    pos = findall(y-> y.vac_status == 2 && y.days_vac >= p.booster_after[y.vaccine_n] && y.age >= p.min_age_booster && y.n_boosted < p.n_boosts && !(y.health_status in aux_states),humans)
 
     l2 = min(vac_rate_booster[time_pos]+remaining_doses,length(pos))
     pos = sample(pos,l2,replace=false)
@@ -674,9 +710,30 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         x = humans[i]
         x.days_vac = 0
         x.boosted = true
+        x.n_boosted += 1
         x.vac_eff_inf = deepcopy(p.vac_efficacy_inf[x.vaccine_n])
         x.vac_eff_symp = deepcopy(p.vac_efficacy_symp[x.vaccine_n])
         x.vac_eff_sev = deepcopy(p.vac_efficacy_sev[x.vaccine_n])
+
+        if x.recovered
+            index = Int(floor(x.days_recovered/7))
+
+            if index > 0
+                if index <= size(waning_factors_rec,1)
+                    aux = waning_factors_rec[index,1]
+                else
+                    aux = waning_factors_rec[end,1]
+                end
+            else
+                aux = 1.0
+            end
+
+            if aux > p.vac_efficacy_inf[x.vaccine_n][1][x.vac_status][end]
+                x.recvac = 1
+            else
+                x.recvac = 2
+            end
+        end
     end
 
    
@@ -1025,6 +1082,12 @@ function time_update()
     icu_v = zeros(Int64,p.nstrains)
     rec_v = zeros(Int64,p.nstrains)
     ded_v = zeros(Int64,p.nstrains)
+
+    unvac_r::Int64 = 0
+    unvac_nr::Int64 = 0
+    vac_1::Int64 = 0
+    vac_2::Int64 = 0
+    vac_3::Int64 = 0
     
     for x in humans 
         x.tis += 1 
@@ -1034,7 +1097,25 @@ function time_update()
         end
         if x.tis >= x.exp             
             @match Symbol(x.swap_status) begin
-                :LAT  => begin move_to_latent(x); lat_v[x.strain] += 1; end
+                :LAT  => begin 
+                    move_to_latent(x); 
+                    lat_v[x.strain] += 1; 
+                    if x.vac_status == 1
+                        vac_1 += 1
+                    elseif x.vac_status == 2
+                        if x.boosted
+                            vac_3 += 1
+                        else
+                            vac_2 += 1
+                        end
+                    else
+                        if x.recovered
+                            unvac_r += 1
+                        else
+                            unvac_nr += 1
+                        end
+                    end
+                end
                 :PRE  => begin move_to_pre(x); pre_v[x.strain] += 1; end
                 :ASYMP => begin move_to_asymp(x); asymp_v[x.strain] += 1; end
                 :MILD => begin move_to_mild(x); mild_v[x.strain] += 1; end
@@ -1058,18 +1139,19 @@ function time_update()
        
     end
 
-
-    (lat,lat2,lat3,lat4,lat5,lat6) = lat_v
-    (mild,mild2,mild3,mild4,mild5,mild6) = mild_v
-    (miso,miso2,miso3,miso4,miso5,miso6) = miso_v
-    (inf,inf2,inf3,inf4,inf5,inf6) = inf_v
-    (infiso,infiso2,infiso3,infiso4,infiso5,infiso6) = infiso_v
-    (hos,hos2,hos3,hos4,hos5,hos6) = hos_v
-    (icu,icu2,icu3,icu4,icu5,icu6) = icu_v
-    (rec,rec2,rec3,rec4,rec5,rec6) = rec_v
-    (ded,ded2,ded3,ded4,ded5,ded6) = ded_v
-
-    return (lat, mild, miso, inf, infiso, hos, icu, rec, ded,lat2, mild2, miso2, inf2, infiso2, hos2, icu2, rec2, ded2,lat3, mild3, miso3, inf3, infiso3, hos3, icu3, rec3, ded3, lat4, mild4, miso4, inf4, infiso4, hos4, icu4, rec4, ded4, lat5, mild5, miso5, inf5, infiso5, hos5, icu5, rec5, ded5, lat6, mild6, miso6, inf6, infiso6, hos6, icu6, rec6, ded6)
+    #= 
+        (lat,lat2,lat3,lat4,lat5,lat6) = lat_v
+        (mild,mild2,mild3,mild4,mild5,mild6) = mild_v
+        (miso,miso2,miso3,miso4,miso5,miso6) = miso_v
+        (inf,inf2,inf3,inf4,inf5,inf6) = inf_v
+        (infiso,infiso2,infiso3,infiso4,infiso5,infiso6) = infiso_v
+        (hos,hos2,hos3,hos4,hos5,hos6) = hos_v
+        (icu,icu2,icu3,icu4,icu5,icu6) = icu_v
+        (rec,rec2,rec3,rec4,rec5,rec6) = rec_v
+        (ded,ded2,ded3,ded4,ded5,ded6) = ded_v
+    =#
+    #return (lat, mild, miso, inf, infiso, hos, icu, rec, ded,lat2, mild2, miso2, inf2, infiso2, hos2, icu2, rec2, ded2,lat3, mild3, miso3, inf3, infiso3, hos3, icu3, rec3, ded3, lat4, mild4, miso4, inf4, infiso4, hos4, icu4, rec4, ded4, lat5, mild5, miso5, inf5, infiso5, hos5, icu5, rec5, ded5, lat6, mild6, miso6, inf6, infiso6, hos6, icu6, rec6, ded6)
+    return (unvac_r,unvac_nr,vac_1,vac_2,vac_3)
 end
 export time_update
 
@@ -1116,30 +1198,46 @@ function move_to_latent(x::Human)
     age_thres = [4, 19, 49, 64, 79, 999]
     g = findfirst(y-> y >= x.age, age_thres)
 
+    index = Int(floor(x.days_recovered/7))
+    aux_red = 0.0
+
     if x.recovered
-        index = Int(floor(x.days_recovered/7))
-        
-        if index > 0
-            if index <= size(waning_factors_rec,1)
-                aux = waning_factors_rec[index,3]
+        if x.recvac == 1
+
+            if index > 0
+                if index <= size(waning_factors_rec,1)
+                    aux = waning_factors_rec[index,3]#*(1-aux_red)
+                else
+                    aux = waning_factors_rec[end,3]#*(1-aux_red)
+                end
             else
-                aux = waning_factors_rec[end,3]
+                aux = 1.0#*(1-aux_red)
+            end
+
+        elseif x.recvac == 2
+
+            if x.vac_status*x.protected > 0
+
+                aux = x.vac_eff_symp[x.strain][end][end]
+                
+            else
+                if index > 0
+                    if index <= size(waning_factors_rec,1)
+                        aux = waning_factors_rec[index,3]
+                    else
+                        aux = waning_factors_rec[end,3]
+                    end
+                else
+                    aux = 1.0
+                end
             end
         else
-            aux = 1.0
+            error("move to latent recvac")
         end
-
-        aux_vac = x.vac_status*x.protected > 0 ? x.vac_eff_symp[x.strain][x.vac_status][x.protected] : 0.0
-
-        if  aux_vac >= aux
-            aux = aux_vac
-        end
-
-        auxiliar = (1-aux)
     else
         aux = x.vac_status*x.protected > 0 ? x.vac_eff_symp[x.strain][x.vac_status][x.protected] : 0.0
-        auxiliar = (1-aux)
     end
+    auxiliar = (1-aux)
  
     if rand() < (symp_pcts[g])*auxiliar
 
@@ -1179,13 +1277,13 @@ end
 export move_to_asymp
 
 function move_to_pre(x::Human)
-    if x.strain == 1 || x.strain == 3 || x.strain == 5 || x.strain == 6
+    if x.strain == 1 || x.strain == 3 || x.strain == 5 
         θ = (0.95, 0.9, 0.85, 0.6, 0.2)  # percentage of sick individuals going to mild infection stage
-    elseif x.strain == 2 || x.strain == 4
+    elseif x.strain == 2 || x.strain == 4 || x.strain == 6
         θ = (0.89, 0.78, 0.67, 0.48, 0.04)
-            if x.strain == 4
-                θ = map(y-> max(0,1-(1-y)*1.88),θ)
-            end
+        #= if x.strain == 4
+            θ = map(y-> max(0,1-(1-y)*1.88),θ)
+        end =#
     else
         error("no strain in move to pre")
     end  # percentage of sick individuals going to mild infection stage
@@ -1193,29 +1291,54 @@ function move_to_pre(x::Human)
     x.health_status = x.swap_status
     x.tis = 0   # reset time in state 
     x.exp = x.dur[3] # get the presymptomatic period
+    ##########
 
+    
+    if x.recovered
+        index = Int(floor(x.days_recovered/7))
+        aux_red = x.strain == 6 ? p.reduction_sev_omicron : 0.0
 
-    if x.recovered || x.boosted
-        #= if x.vac_status*x.protected == 0 || x.days_recovered <= x.days_vac
-            index = Int(floor(x.days_recovered/7))
+        if x.recvac == 1
+
             if index > 0
                 if index <= size(waning_factors_rec,1)
-                    aux = waning_factors_rec[index,3]
+                    aux = waning_factors_rec[index,3]#*(1-aux_red)
                 else
-                    aux = waning_factors_rec[end,3]
+                    aux = waning_factors_rec[end,3]#*(1-aux_red)
                 end
             else
-                aux = 1.0
+                aux = 1.0#*(1-aux_red)
             end
-        else
-            aux = x.vac_eff_sev[x.strain][x.vac_status][x.protected]
-        end =#
-        auxiliar = 0.0#(1-aux)
-    else
-        aux = x.vac_status*x.protected > 0 ? x.vac_eff_sev[x.strain][x.vac_status][x.protected] : 0.0
-        auxiliar = (1-aux)
-    end
 
+        elseif x.recvac == 2
+
+            if x.vac_status*x.protected > 0
+                aux = x.vac_eff_sev[x.strain][end][end]
+            else
+                if index > 0
+                    if index <= size(waning_factors_rec,1)
+                        aux = waning_factors_rec[index,3]
+                    else
+                        aux = waning_factors_rec[end,3]
+                    end
+                else
+                    aux = 1.0
+                end
+            end
+        end
+    else
+        if x.vac_status*x.protected > 0
+            
+            aux_red = x.strain == 6 ? p.reduction_sev_omicron : 0.0
+            aux = x.vac_eff_sev[x.strain][x.vac_status][x.protected]
+        else
+            aux = 0.0
+            aux_red = 0.0
+        end
+
+    end
+    auxiliar = (1-aux)*(1-aux_red)
+    
     if rand() < (1-θ[x.ag])*auxiliar
         aux_v = [INF;INF2;INF3;INF4;INF5;INF6]
         x.swap = aux_v[x.strain]
@@ -1294,11 +1417,11 @@ function move_to_inf(x::Human)
  
     # h = prob of hospital, c = prob of icu AFTER hospital    
     comh = 0.98
-    if x.strain == 1 || x.strain == 3 || x.strain == 5 || x.strain == 6
+    if x.strain == 1 || x.strain == 3 || x.strain == 5
         h = x.comorbidity == 1 ? comh : 0.04 #0.376
         c = x.comorbidity == 1 ? 0.396 : 0.25
 
-    elseif x.strain == 2 || x.strain == 4
+    elseif x.strain == 2 || x.strain == 4 || x.strain == 6
         if x.age <  20
             h = x.comorbidity == 1 ? comh : 0.05*1.07*1 #0.376
             c = x.comorbidity == 1 ? 0.396*1.07 : 0.25*1.07
@@ -1324,12 +1447,30 @@ function move_to_inf(x::Human)
             h = x.comorbidity == 1 ? comh : 0.05*1.60*1 #0.376
             c = x.comorbidity == 1 ? 0.396*1.60 : 0.25*1.60
         end
+                
         if x.strain == 4
-            h = h*2.26
+            if !x.recovered && x.vac_status < 2
+                h = h*2.26 #https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(21)00475-8/fulltext
+            elseif x.recovered || x.boosted #for booster, it is an assumption
+                h = h/6.7 #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
+            end
+        elseif x.strain == 6
+            #https://www.deseret.com/coronavirus/2021/12/31/22861222/omicron-variant-less-severe-covid-symptoms-deaths
+            #https://jamanetwork.com/journals/jama/fullarticle/2787776?guestAccessKey=919da83d-b6f9-4e05-8de1-05cca4541a59&utm_source=silverchair&utm_medium=email&utm_campaign=article_alert-jama&utm_content=olf&utm_term=123021
+            h = h*(1-p.reduction_sev_omicron) # 0.7
+            c = c*(1-0.36)#https://jamanetwork.com/journals/jama/fullarticle/2787776?guestAccessKey=919da83d-b6f9-4e05-8de1-05cca4541a59&utm_source=silverchair&utm_medium=email&utm_campaign=article_alert-jama&utm_content=olf&utm_term=123021
+            if x.recovered || x.boosted #for booster, it is an assumption
+                h = h/6.7 #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
+            end
+        elseif x.strain == 2
+            if x.recovered || x.boosted #for booster, it is an assumption
+                h = h/6.7 #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
+            end
+        else
+            error("in hospitalization")
         end
     else
         error("no strain in movetoinf")
-        
     end
     
     groups = [0:34,35:54,55:69,70:84,85:100]
@@ -1367,7 +1508,7 @@ function move_to_inf(x::Human)
        
     else ## no hospital for this lucky (but severe) individual 
         aux = (p.mortality_inc^Int(x.strain==2 || x.strain == 4))
-        aux = x.strain == 4 ? aux*1.0 : aux
+        aux = x.strain == 4 || x.strain == 6 ? aux*0.0 : aux
         if x.iso || rand() < p.fsevere 
             x.exp = 1  ## 1 day isolation for severe cases 
             aux_v = [IISO;IISO2;IISO3;IISO4;IISO5;IISO6]
@@ -1403,7 +1544,7 @@ function move_to_iiso(x::Human)
     
     mh = [0.0002; 0.0015; 0.011; 0.0802; 0.381] # death rate for severe cases.
     aux = (p.mortality_inc^Int(x.strain==2 || x.strain == 4))
-    aux = x.strain == 4 ? aux*1.0 : aux
+    aux = x.strain == 4 || x.strain == 6 ? aux*0.0 : aux
 
     if rand() < mh[gg]*aux
         x.exp = x.dur[4] 
@@ -1427,14 +1568,15 @@ function move_to_hospicu(x::Human)
     # on May 31th, 2020
     #= age_thres = [24;34;44;54;64;74;84;999]
     g = findfirst(y-> y >= x.age,age_thres) =#
+    #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
     aux = [0:4, 5:19, 20:44, 45:54, 55:64, 65:74, 75:84, 85:99]
    
-    if x.strain == 1 || x.strain == 3 || x.strain == 5 || x.strain == 6
+    if x.strain == 1 || x.strain == 3 || x.strain == 5
 
         mh = [0.001, 0.001, 0.0015, 0.0065, 0.01, 0.02, 0.0735, 0.38]
         mc = [0.002,0.002,0.0022, 0.008, 0.022, 0.04, 0.08, 0.4]
 
-    elseif x.strain == 2  || x.strain == 4
+    elseif x.strain == 2  || x.strain == 4  || x.strain == 6
     
         mh = 0.5*[0.0016, 0.0016, 0.0025, 0.0107, 0.02, 0.038, 0.15, 0.66]
         mc = 0.5*[0.0033, 0.0033, 0.0036, 0.0131, 0.022, 0.04, 0.2, 0.70]
@@ -1442,6 +1584,11 @@ function move_to_hospicu(x::Human)
         if x.strain == 4
             mh = 1.0*mh
             mc = 1.0*mc
+        elseif x.strain == 6
+            #https://www.ijidonline.com/action/showPdf?pii=S1201-9712%2821%2901256-X
+            # 70% -> reduction
+            mh = (1-p.reduction_sev_omicron)*mh
+            mc = (1-p.reduction_sev_omicron)*mc
         end
 
     else
@@ -1528,6 +1675,8 @@ function move_to_recovered(h::Human)
     h.tis = 0 
     h.exp = 999 ## stay recovered indefinitely
     h.iso = false ## a recovered person has ability to meet others
+    h.recvac = 1
+    
     _set_isolation(h, false)  # do not set the isovia property here.  
     # isolation property has no effect in contact dynamics anyways (unless x == SUS)
 end
@@ -1626,7 +1775,7 @@ export _get_betavalue
         cnt = rand(negative_binomials_shelter(ag,p.contact_change_2))  # expensive operation, try to optimize
     end
     
-    if x.health in (DED,DED2,DED3)
+    if x.health_status == DED
         cnt = 0 
     end
     x.nextday_meetcnt = cnt
@@ -1662,26 +1811,67 @@ function dyntrans(sys_time, grps,sim)
                     beta = _get_betavalue(sys_time, xhealth)
                     adj_beta = 0 # adjusted beta value by strain and vaccine efficacy
                     if y.health == SUS && y.swap == UNDEF
-                        aux = y.vac_status*y.protected > 0 ? y.vac_eff_inf[x.strain][y.vac_status][y.protected] : 0.0
-                        adj_beta = beta*(1-aux)
-                    elseif y.health_status == REC  && y.swap == UNDEF
+                        if y.vac_status*y.protected > 0
 
-                        index = Int(floor(y.days_recovered/7))
-                        #aux_red = x.strain == 6 ? p.reduction_omicron : 0.0
-                        if index > 0
-                            if index <= size(waning_factors_rec,1)
-                                aux = waning_factors_rec[index,1]
+                            if x.strain == 6
+                                if y.boosted
+                                    aux_r = (y.days_vac > 90) ? (1-p.reduction_omicron*(1-p.reduction_reduction)) : 1.0
+                                else
+                                    aux_r = (y.days_vac > 90 && y.vac_status == 2) ? (1-p.reduction_omicron) : 1.0
+                                end
                             else
-                                aux = waning_factors_rec[end,1]
+                                aux_r = 1.0
                             end
+
+                            aux = aux_r*y.vac_eff_inf[x.strain][y.vac_status][y.protected]
                         else
-                            aux = 1.0
+                            aux = 0.0
+                        end
+                         
+                        adj_beta = beta*(1-aux)
+
+                    elseif y.health_status == REC && y.swap == UNDEF
+                        index = Int(floor(y.days_recovered/7))
+
+                        if y.vac_status > 0
+                            aux_red = (x.strain == 6 && y.days_recovered > 90 && y.days_vac > 90) ? p.reduction_omicron : 0.0
+                        else
+                            aux_red = (x.strain == 6 && y.days_recovered > 90) ? p.reduction_omicron : 0.0
                         end
 
-                        aux_vac = y.vac_status*y.protected > 0 ? y.vac_eff_inf[x.strain][y.vac_status][y.protected] : 0.0
+                        if y.recvac == 1
 
-                        if  aux_vac >= aux
-                            aux = aux_vac
+                            if index > 0
+                                if index <= size(waning_factors_rec,1)
+                                    aux = waning_factors_rec[index,1]
+                                else
+                                    aux = waning_factors_rec[end,1]
+                                end
+                            else
+                                aux = 1.0
+                            end
+                            aux_vac = y.vac_status*y.protected > 0 ? (1-p.reduction_reduction) : 1.0
+                            aux = aux*(1-aux_red*aux_vac)
+
+                        elseif y.recvac == 2
+
+                            if y.vac_status*y.protected > 0
+
+                                aux_vac = y.vac_eff_inf[x.strain][end][end]
+                                aux = aux_vac*(1-aux_red*(1-p.reduction_reduction))
+                            else
+                                
+                                if index > 0
+                                    if index <= size(waning_factors_rec,1)
+                                        aux = waning_factors_rec[index,1]*(1-aux_red)
+                                    else
+                                        aux = waning_factors_rec[end,1]*(1-aux_red)
+                                    end
+                                else
+                                    aux = 1.0*(1-aux_red)
+                                end
+    
+                            end
                         end
 
                         adj_beta = beta*(1-aux)
