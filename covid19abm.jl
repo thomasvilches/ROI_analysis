@@ -165,6 +165,8 @@ end
     time_vac_kids::Int64 = 253
     time_vac_kids2::Int64 = 428
     using_jj::Bool = false
+    reduction_sev_omicron::Float64 = 0.752
+    hosp_red::Float64 = 3.1
 
     α::Float64 = 1.0
     α2::Float64 = 0.0
@@ -852,13 +854,18 @@ function _get_column_incidence(hmatrix, hcol)
     inth = Int(hcol)
     timevec = zeros(Int64, p.modeltime)
     for r in eachrow(hmatrix)
-        idx = findfirst(x -> x == inth, r)
-        if idx !== nothing 
-            timevec[idx] += 1
+        idx = findall(x-> r[x] == inth && r[x] != r[x-1],2:length(r))
+        idx = idx .+ 1
+        #idx = findfirst(x -> x == inth, r)
+        if idx !== nothing
+            for i in idx 
+                timevec[i] += 1
+            end
         end
     end
     return timevec
 end
+
 
 function herd_immu_dist_4(sim::Int64,strain::Int64)
     rng = MersenneTwister(200*sim)
@@ -1447,24 +1454,27 @@ function move_to_inf(x::Human)
             h = x.comorbidity == 1 ? comh : 0.05*1.60*1 #0.376
             c = x.comorbidity == 1 ? 0.396*1.60 : 0.25*1.60
         end
-                
+        #= 
+        H. Scribner, Omicron variant leads to less severe symptoms, deaths, new study says. Deseret News (2021) (January 6, 2022).
+        UK Health Security Agency, “Technical briefing: Update on hospitalisation and vaccine effectiveness for Omicron VOC-21NOV-01 (B.1.1.529)” (2021).
+        C. M aslo, et al., Characteristics and Outcomes of Hospitalized Patients in South Africa During the COVID-19 Omicron Wave Compared With Previous Waves. JAMA (2021) https:/doi.org/10.1001/jama.2021.24868.
+        =#
         if x.strain == 4
             if !x.recovered && x.vac_status < 2
                 h = h*2.26 #https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(21)00475-8/fulltext
             elseif x.recovered || x.boosted #for booster, it is an assumption
-                h = h/6.7 #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
+                h = h/p.hosp_red #
             end
         elseif x.strain == 6
-            #https://www.deseret.com/coronavirus/2021/12/31/22861222/omicron-variant-less-severe-covid-symptoms-deaths
-            #https://jamanetwork.com/journals/jama/fullarticle/2787776?guestAccessKey=919da83d-b6f9-4e05-8de1-05cca4541a59&utm_source=silverchair&utm_medium=email&utm_campaign=article_alert-jama&utm_content=olf&utm_term=123021
+
             h = h*(1-p.reduction_sev_omicron) # 0.7
-            c = c*(1-0.36)#https://jamanetwork.com/journals/jama/fullarticle/2787776?guestAccessKey=919da83d-b6f9-4e05-8de1-05cca4541a59&utm_source=silverchair&utm_medium=email&utm_campaign=article_alert-jama&utm_content=olf&utm_term=123021
+            c = c*(1-0.381)#
             if x.recovered || x.boosted #for booster, it is an assumption
-                h = h/6.7 #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
+                h = h/p.hosp_red
             end
         elseif x.strain == 2
             if x.recovered || x.boosted #for booster, it is an assumption
-                h = h/6.7 #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
+                h = h/p.hosp_red 
             end
         else
             error("in hospitalization")
