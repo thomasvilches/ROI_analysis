@@ -64,6 +64,7 @@ end
     start_several_inf::Bool = true
     modeltime::Int64 = 435
     initialinf::Int64 = 20
+    initialhi::Int64 = 20 ## initial herd immunity, inserts number of REC individuals
     τmild::Int64 = 0 ## days before they self-isolate for mild cases
     fmild::Float64 = 0.0  ## percent of people practice self-isolation
     fsevere::Float64 = 0.0 #
@@ -113,11 +114,13 @@ end
     time_fifth_strain::Int64 = 7 #when will the fifth strain introduced
     fifth_strain_trans::Float64 = 1.35 #transmissibility of fifth strain
 
-    ## Beta - B.1.351
+    ##OMICRON
     ins_sixth_strain::Bool = true #insert third strain?
     initialinf6::Int64 = 1 #number of initial infected of sixth strain
     time_sixth_strain::Int64 = 999 #when will the sixth strain introduced
-    sixth_strain_trans::Float64 = 1.2 #transmissibility of sixth strain
+    rel_trans_sixth::Float64 = 1.0
+    sixth_strain_trans::Float64 = rel_trans_sixth*sec_strain_trans*fourth_strain_trans #transmissibility of sixth strain
+    reduction_sev_omicron::Float64 = 0.752 ##reduction of severity compared to Delta
 
     mortality_inc::Float64 = 1.3 #The mortality increase when infected by strain 2
 
@@ -127,22 +130,21 @@ end
     booster_after::Array{Int64,1} = [180;180;999]
     n_boosts::Int64 = 1
     min_age_booster::Int64 = 16
-    reduction_omicron::Float64 = 0.0 ##not using
-    reduction_reduction::Float64 = 0.0
+    reduction_omicron::Float64 = 0.6 ##not using
     #=------------ Vaccine Efficacy ----------------------------=#
    
     #=------------ Vaccine Efficacy ----------------------------=#
-    days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14],[0;7]],[[14],[0;14]],[[14]]]
-    vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46],[0.6;0.861]],[[0.295],[0.6;0.895]],[[0.368],[0.48;0.736]],[[0.368],[0.48;0.64]],[[0.46],[0.6;0.861]],[[0.368],[0.48;0.64]]],
-    [[[0.61],[0.61,0.935]],[[0.56],[0.56,0.86]],[[0.488],[0.488;0.745]],[[0.496],[0.496,0.76]],[[0.61],[0.61,0.935]],[[0.496],[0.496,0.76]]],
+    days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14;21],[0;7]],[[14;21],[0;14]],[[14]]]
+    vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46;0.46],[0.46;0.861]],[[0.295;0.296],[0.296;0.895]],[[0.416;0.416],[0.416;0.85]],[[0.416;0.416],[0.416;0.85]],[[0.416;0.416],[0.416;0.85]],[[0.416;0.416],[0.416;0.88]]],#booster efficacy  for omicron changed in vac_time function
+    [[[0.843;0.843],[0.843,0.964]],[[0.901;0.901],[0.901,0.984]],[[0.488;0.488],[0.488;0.745]],[[0.77;0.77],[0.77,0.867]],[[0.61;0.61],[0.61,0.935]],[[0.77;0.77],[0.77,0.867]]],
     [[[0.61]],[[0.56]],[[0.488]],[[0.496]],[[0.61]],[[0.488]]]]#### 50:5:80
 
-    vac_efficacy_symp::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.57],[0.66;0.94]],[[0.536],[0.62;0.937]],[[0.332],[0.66;0.94]],[[0.335],[0.62;0.88]],[[0.57],[0.66;0.94]],[[0.335],[0.62;0.88]]],
-    [[[0.921],[0.921,0.941]],[[0.88],[0.88,0.91]],[[0.332],[0.66;0.94]],[[0.68],[0.68,0.70]],[[0.921],[0.921,0.941]],[[0.68],[0.68,0.70]]], #### 50:5:80
+    vac_efficacy_symp::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.63;0.65],[0.65;0.93]],[[0.67;0.7],[0.7;0.89]],[[0.332;0.332],[0.66;0.94]],[[0.57;0.59],[0.59;0.92]],[[0.57;0.57],[0.66;0.94]],[[0.616;0.616],[0.616;0.738]]], #booster efficacy  for omicronmchanged in vac_time function
+    [[[0.63;0.7],[0.7,0.96]],[[0.82;0.83],[0.83,0.92]],[[0.332;0.332],[0.66;0.94]],[[0.7;0.69],[0.69,0.95]],[[0.921;0.921],[0.921,0.941]],[[0.678;0.685],[0.685,0.738]]], #### 50:5:80
     [[[0.921]],[[0.88]],[[0.332]],[[0.68]],[[0.921]],[[0.332]]]] #### 50:5:80
     
-    vac_efficacy_sev::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.62],[0.80;0.92]],[[0.541],[0.8;0.94]],[[0.34],[0.68;0.974]],[[0.34],[0.68;0.80]],[[0.62],[0.80;0.92]],[[0.34],[0.68;0.80]]],
-    [[[0.921],[0.921,1.0]],[[0.816],[0.816,0.957]],[[0.34],[0.68;0.974]],[[0.781],[0.781,0.916]],[[0.921],[0.921,1.0]],[[0.781],[0.781,0.916]]],#### 50:5:80
+    vac_efficacy_sev::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.77;0.88],[0.88;0.98]],[[0.82;0.87],[0.87;0.96]],[[0.34;0.34],[0.68;0.974]],[[0.81;0.81],[0.81;0.97]],[[0.62;0.62],[0.80;0.92]],[[0.676;0.676],[0.676;0.81]]], #booster efficacy for omicron changed in vac_time function
+    [[[0.66;0.7],[0.7,0.97]],[[0.8;0.82],[0.82,0.95]],[[0.34;0.34],[0.68;0.974]],[[0.9;0.91],[0.91,0.98]],[[0.921,0.921],[0.921,1.0]],[[0.744;0.752],[0.752,0.81]]],#### 50:5:80
     [[[0.921]],[[0.816]],[[0.34]],[[0.781]],[[0.921]],[[0.34]]]]#### 50:5:80
 
 
@@ -165,7 +167,7 @@ end
     time_vac_kids::Int64 = 253
     time_vac_kids2::Int64 = 428
     using_jj::Bool = false
-    reduction_sev_omicron::Float64 = 0.752
+    
     hosp_red::Float64 = 3.1
 
     α::Float64 = 1.0
@@ -717,6 +719,11 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         x.vac_eff_symp = deepcopy(p.vac_efficacy_symp[x.vaccine_n])
         x.vac_eff_sev = deepcopy(p.vac_efficacy_sev[x.vaccine_n])
 
+        #### ADD here the new vaccine efficacy against Omicron for booster
+        x.vac_eff_inf[6][2][end] = 0.755
+        x.vac_eff_symp[6][2][end] = 0.82
+        x.vac_eff_sev[6][2][end] = 0.90
+
         if x.recovered
             index = Int(floor(x.days_recovered/7))
 
@@ -999,7 +1006,7 @@ function initialize()
         g = findfirst(y->y>=x.age,a)
         x.ag_new = g
         x.exp = 999  ## susceptible people don't expire.
-        x.dur = sample_epi_durations() # sample epi periods   
+        
         if rand() < p.eldq && x.ag == p.eldqag   ## check if elderly need to be quarantined.
             x.iso = true   
             x.isovia = :qu         
@@ -1034,7 +1041,7 @@ function insert_infected(health, num, ag,strain)
             x = humans[i]
             x.strain = strain
             x.first_one = true
-
+            x.dur = sample_epi_durations(x)
             if x.strain > 0
                 if health == PRE
                     x.swap = aux_pre[x.strain]
@@ -1176,13 +1183,24 @@ export time_update
     x.iso = iso 
     x.isovia == :null && (x.isovia = via)
 end
-
-function sample_epi_durations()
+function sample_epi_durations(y::Human)
     # when a person is sick, samples the 
-    lat_dist = Distributions.truncated(LogNormal(1.434, 0.661), 4, 7) # truncated between 4 and 7
-    pre_dist = Distributions.truncated(Gamma(1.058, 5/2.3), 0.8, 3)#truncated between 0.8 and 3
+    
+    if y.strain == 4
+        lat_dist = Distributions.truncated(LogNormal(1.249, 0.649), 3.5, 7) # truncated between 3.5 and 7
+        pre_dist = Distributions.truncated(Gamma(1.015, 1.975), 0.8, 2.2)#truncated between 0.8 and 2.2
+    elseif y.strain == 6
+        lat_dist = Distributions.truncated(LogNormal(0.99, 0.64), 3, 7) # truncated between 3 and 7
+        pre_dist = Distributions.truncated(Gamma(1.015, 1.975), 0.8, 2.2)#truncated between 0.8 and2.2
+
+    else
+        lat_dist = Distributions.truncated(LogNormal(1.434, 0.661), 4, 7) # truncated between 4 and 7
+        pre_dist = Distributions.truncated(Gamma(1.058, 5/2.3), 0.8, 3)#truncated between 0.8 and 3
+    end
+
     asy_dist = Gamma(5, 1)
     inf_dist = Gamma((3.2)^2/3.7, 3.7/3.2)
+
 
     latents = Int.(round.(rand(lat_dist)))
     pres = Int.(round.(rand(pre_dist)))
@@ -1825,9 +1843,9 @@ function dyntrans(sys_time, grps,sim)
 
                             if x.strain == 6
                                 if y.boosted
-                                    aux_r = (y.days_vac > 90) ? (1-p.reduction_omicron*(1-p.reduction_reduction)) : 1.0
+                                    aux_r = 1.0
                                 else
-                                    aux_r = (y.days_vac > 90 && y.vac_status == 2) ? (1-p.reduction_omicron) : 1.0
+                                    aux_r = (y.days_vac > 70 && y.vac_status == 2) ? (1-p.reduction_omicron) : 1.0
                                 end
                             else
                                 aux_r = 1.0
@@ -1844,9 +1862,9 @@ function dyntrans(sys_time, grps,sim)
                         index = Int(floor(y.days_recovered/7))
 
                         if y.vac_status > 0
-                            aux_red = (x.strain == 6 && y.days_recovered > 90 && y.days_vac > 90) ? p.reduction_omicron : 0.0
+                            aux_red = 0.0
                         else
-                            aux_red = (x.strain == 6 && y.days_recovered > 90) ? p.reduction_omicron : 0.0
+                            aux_red = (x.strain == 6 && y.days_recovered > 70) ? p.reduction_omicron : 0.0
                         end
 
                         if y.recvac == 1
@@ -1860,27 +1878,27 @@ function dyntrans(sys_time, grps,sim)
                             else
                                 aux = 1.0
                             end
-                            aux_vac = y.vac_status*y.protected > 0 ? (1-p.reduction_reduction) : 1.0
-                            aux = aux*(1-aux_red*aux_vac)
+                            
+                            aux = aux*(1-aux_red)
 
                         elseif y.recvac == 2
 
                             if y.vac_status*y.protected > 0
-
                                 aux_vac = y.vac_eff_inf[x.strain][end][end]
-                                aux = aux_vac*(1-aux_red*(1-p.reduction_reduction))
+                                aux = aux_vac*(1-aux_red)
                             else
                                 
                                 if index > 0
                                     if index <= size(waning_factors_rec,1)
-                                        aux = waning_factors_rec[index,1]*(1-aux_red)
+                                        aux = waning_factors_rec[index,1]
                                     else
-                                        aux = waning_factors_rec[end,1]*(1-aux_red)
+                                        aux = waning_factors_rec[end,1]
                                     end
                                 else
-                                    aux = 1.0*(1-aux_red)
+                                    aux = 1.0
                                 end
-    
+                                
+                                aux = aux*(1-aux_red)
                             end
                         end
 
@@ -1896,7 +1914,8 @@ function dyntrans(sys_time, grps,sim)
                         aux_v = [LAT;LAT2;LAT3;LAT4;LAT5;LAT6]
                         y.swap = aux_v[y.strain]
                         y.swap_status = LAT
-                        #y.swap = y.strain == 1 ? LAT : LAT2
+                        y.dur = sample_epi_durations(y)
+                        
                     end  
                 end
             end            
