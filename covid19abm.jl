@@ -118,7 +118,7 @@ end
     ins_sixth_strain::Bool = true #insert third strain?
     initialinf6::Int64 = 1 #number of initial infected of sixth strain
     time_sixth_strain::Int64 = 999 #when will the sixth strain introduced
-    rel_trans_sixth::Float64 = 1.0
+    rel_trans_sixth::Float64 = 1.35
     sixth_strain_trans::Float64 = rel_trans_sixth*sec_strain_trans*fourth_strain_trans #transmissibility of sixth strain
     reduction_sev_omicron::Float64 = 0.752 ##reduction of severity compared to Delta
 
