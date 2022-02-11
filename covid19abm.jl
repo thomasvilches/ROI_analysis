@@ -127,12 +127,13 @@ end
     vaccine_proportion::Vector{Float64} = [0.59;0.33;0.08]
     vaccine_proportion_2::Vector{Float64} = [0.63;0.37;0.0]
     vac_period::Array{Int64,1} = [21;28;999]
-    booster_after::Array{Int64,1} = [180;180;999]
     n_boosts::Int64 = 1
     min_age_booster::Int64 = 16
     reduction_omicron::Float64 = 0.6 ##not using
     #=------------ Vaccine Efficacy ----------------------------=#
-   
+    booster_after::Array{Int64,1} = [180;180;999]
+    booster_after_bkup::Array{Int64,1} = [150;150;999]
+    change_booster_eligibility::Int64 = 490
     #=------------ Vaccine Efficacy ----------------------------=#
     days_to_protection::Array{Array{Array{Int64,1},1},1} = [[[14;21],[0;7]],[[14;21],[0;14]],[[14]]]
     vac_efficacy_inf::Array{Array{Array{Array{Float64,1},1},1},1} = [[[[0.46;0.46],[0.46;0.861]],[[0.295;0.296],[0.296;0.895]],[[0.416;0.416],[0.416;0.85]],[[0.416;0.416],[0.416;0.85]],[[0.416;0.416],[0.416;0.85]],[[0.416;0.416],[0.416;0.88]]],#booster efficacy  for omicron changed in vac_time function
@@ -387,6 +388,9 @@ function main(ip::ModelParameters,sim::Int64)
             
             end
         end 
+        if st == p.change_booster_eligibility
+            p.booster_after = deepcopy(p.booster_after_bkup)
+        end
         # start of day
         #println("$st")
 
