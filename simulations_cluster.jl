@@ -106,21 +106,48 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     vac_j_2 = [cdr[i].n_jensen_2 for i=1:nsims]
     vac_j_w_2 = [cdr[i].n_jensen_w_2 for i=1:nsims]
 
+    vac_m_3 = [cdr[i].n_moderna_3 for i=1:nsims]
+    vac_m_w_3 = [cdr[i].n_moderna_w_3 for i=1:nsims]
+
+    vac_p_3 = [cdr[i].n_pfizer_3 for i=1:nsims]
+    vac_p_w_3 = [cdr[i].n_pfizer_w_3 for i=1:nsims]
+
+    vac_j_3 = [cdr[i].n_jensen_3 for i=1:nsims]
+    vac_j_w_3 = [cdr[i].n_jensen_w_3 for i=1:nsims]
+
     remaining = [cdr[i].remaining for i=1:nsims]
     total = [cdr[i].total_given for i=1:nsims]
 
 
 
-    writedlm(string(folderprefix,"/vaccine_all.dat"),[vac_p vac_m vac_j vac_p_2 vac_m_2 vac_j_2 remaining total])
-    writedlm(string(folderprefix,"/vaccine_working.dat"),[vac_p_w vac_m_w vac_j_w vac_p_w_2 vac_m_w_2 vac_j_w_2])
+    writedlm(string(folderprefix,"/vaccine_all.dat"),[vac_p vac_m vac_j vac_p_2 vac_m_2 vac_j_2 vac_p_3 vac_m_3 vac_j_3 remaining total])
+    writedlm(string(folderprefix,"/vaccine_working.dat"),[vac_p_w vac_m_w vac_j_w vac_p_w_2 vac_m_w_2 vac_j_w_2 vac_p_w_3 vac_m_w_3 vac_j_w_3])
 
     writedlm(string(folderprefix,"/year_of_death.dat"),hcat([cdr[i].vector_dead for i=1:nsims]...))
 
-    writedlm(string(folderprefix,"/unvac_r.dat"),[cdr[i].unvac_r for i=1:nsims])
-    writedlm(string(folderprefix,"/unvac_nr.dat"),[cdr[i].unvac_nr for i=1:nsims])
-    writedlm(string(folderprefix,"/vac_1.dat"),[cdr[i].vac_1 for i=1:nsims])
-    writedlm(string(folderprefix,"/vac_2.dat"),[cdr[i].vac_2 for i=1:nsims])
-    writedlm(string(folderprefix,"/vac_3.dat"),[cdr[i].vac_3 for i=1:nsims])
+    writedlm(string(folderprefix,"/lat_vac_1.dat"),hcat([cdr[i].lat for i=1:nsims]...))
+    writedlm(string(folderprefix,"/lat_vac_2.dat"),hcat([cdr[i].lat2 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/lat_vac_3.dat"),hcat([cdr[i].lat3 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/lat_unvac_r.dat"),hcat([cdr[i].lat4 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/lat_unvac_nr.dat"),hcat([cdr[i].lat5 for i=1:nsims]...))
+
+    writedlm(string(folderprefix,"/hos_vac_1.dat"),hcat([cdr[i].hos for i=1:nsims]...))
+    writedlm(string(folderprefix,"/hos_vac_2.dat"),hcat([cdr[i].hos2 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/hos_vac_3.dat"),hcat([cdr[i].hos3 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/hos_unvac_r.dat"),hcat([cdr[i].hos4 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/hos_unvac_nr.dat"),hcat([cdr[i].hos5 for i=1:nsims]...))
+
+    writedlm(string(folderprefix,"/icu_vac_1.dat"),hcat([cdr[i].icu for i=1:nsims]...))
+    writedlm(string(folderprefix,"/icu_vac_2.dat"),hcat([cdr[i].icu2 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/icu_vac_3.dat"),hcat([cdr[i].icu3 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/icu_unvac_r.dat"),hcat([cdr[i].icu4 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/icu_unvac_nr.dat"),hcat([cdr[i].icu5 for i=1:nsims]...))
+
+    writedlm(string(folderprefix,"/ded_vac_1.dat"),hcat([cdr[i].ded for i=1:nsims]...))
+    writedlm(string(folderprefix,"/ded_vac_2.dat"),hcat([cdr[i].ded2 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/ded_vac_3.dat"),hcat([cdr[i].ded3 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/ded_unvac_r.dat"),hcat([cdr[i].ded4 for i=1:nsims]...))
+    writedlm(string(folderprefix,"/ded_unvac_nr.dat"),hcat([cdr[i].ded5 for i=1:nsims]...))
 
     return mydfs
 end
@@ -144,21 +171,17 @@ end
 
 
 
-function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyorkcity",ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,when2::Int64=1,when3::Int64 = 1,when4::Int64=1,when5::Int64=1,when6::Int64=1,index::Int64 = 0,dosis::Int64=3,ta::Int64 = 999,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,when_relax::Int64 = 999,turnon_::Int64 = 0,waning::Int64 = 0, scen::String="statuscuo",alpha::Float64 = 1.0,alpha2::Float64 = 0.0,alpha3::Float64 = 1.0,nsims::Int64=500)
+function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyorkcity",ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,index::Int64 = 0,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,nsims::Int64=500)
     
     
     #b = bd[h_i]
     #ic = init_con[h_i]
     @everywhere ip = cv.ModelParameters(β=$b,fsevere = 1.0,fmild = 1.0,vaccinating = $vac,
     start_several_inf=true,initialinf3=$ic3,initialinf6=$ic6,initialinf=$ic1,initialinf2=$ic2,initialinf5=$ic5,initialinf4=$ic4,
-    time_sec_strain = $when2,time_third_strain = $when3,time_fourth_strain = $when4,time_fifth_strain = $when5,time_sixth_strain = $when6,
-    status_relax = $dosis, relax_after = $ta,file_index = $index,
-    modeltime=$mt, prov = Symbol($province), scenario = Symbol($scen), α = $alpha,
+    status_relax = 2, relax_after = 14,file_index = $index,
+    modeltime=$mt, prov = Symbol($province),
     time_change_contact = $dc,
-    change_rate_values = $rc,
-    α2 = $alpha2,
-    α3 = $alpha3,
-    time_back_to_normal=$when_relax, turnon = $turnon_,waning = $waning)
+    change_rate_values = $rc)
 
     folder = create_folder(ip,province,calibrating)
 
