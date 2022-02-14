@@ -1322,10 +1322,10 @@ function move_to_pre(x::Human)
     x.exp = x.dur[3] # get the presymptomatic period
     ##########
 
-    
+    aux_red = 0.0
     if x.recovered
         index = Int(floor(x.days_recovered/7))
-        aux_red = x.strain == 6 ? p.reduction_sev_omicron : 0.0
+        aux_red = 0.0#x.strain == 6 ? p.reduction_sev_omicron : 0.0
 
         if x.recvac == 1
 
@@ -1358,7 +1358,7 @@ function move_to_pre(x::Human)
     else
         if x.vac_status*x.protected > 0
             
-            aux_red = x.strain == 6 ? p.reduction_sev_omicron : 0.0
+            aux_red = 0.0#x.strain == 6 ? p.reduction_sev_omicron : 0.0
             aux = x.vac_eff_sev[x.strain][x.vac_status][x.protected]
         else
             aux = 0.0
@@ -1366,6 +1366,7 @@ function move_to_pre(x::Human)
         end
 
     end
+
     auxiliar = (1-aux)*(1-aux_red)
     
     if rand() < (1-θ[x.ag])*auxiliar
@@ -1845,17 +1846,8 @@ function dyntrans(sys_time, grps,sim)
                     if y.health == SUS && y.swap == UNDEF
                         if y.vac_status*y.protected > 0
 
-                            if x.strain == 6
-                                if y.boosted
-                                    aux_r = 1.0
-                                else
-                                    aux_r = (y.days_vac > 70 && y.vac_status == 2) ? (1-p.reduction_omicron) : 1.0
-                                end
-                            else
-                                aux_r = 1.0
-                            end
 
-                            aux = aux_r*y.vac_eff_inf[x.strain][y.vac_status][y.protected]
+                            aux = y.vac_eff_inf[x.strain][y.vac_status][y.protected]
                         else
                             aux = 0.0
                         end
@@ -1864,12 +1856,12 @@ function dyntrans(sys_time, grps,sim)
 
                     elseif y.health_status == REC && y.swap == UNDEF
                         index = Int(floor(y.days_recovered/7))
-
-                        if y.vac_status > 0
+                        aux_red = 0.0
+                        #= if y.vac_status > 0
                             aux_red = 0.0
                         else
                             aux_red = (x.strain == 6 && y.days_recovered > 70) ? p.reduction_omicron : 0.0
-                        end
+                        end =#
 
                         if y.recvac == 1
 
