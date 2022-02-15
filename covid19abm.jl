@@ -93,7 +93,7 @@ end
 
     ## Gamma - P.1
     ins_third_strain::Bool = true #insert third strain?
-    initialinf3::Int64 = 5 #number of initial infected of third strain
+    initialinf3::Int64 = 1 #number of initial infected of third strain
     time_third_strain::Int64 = 201 #when will the third strain introduced - P1 March 20
     third_strain_trans::Float64 = 1.6 #transmissibility of third strain
     
@@ -325,16 +325,8 @@ function main(ip::ModelParameters,sim::Int64)
     # and setup the right swap function. 
    
     N = herd_immu_dist_4(sim,1)
-    if p.initialinf > 0
-        insert_infected(PRE, p.initialinf, 4, 1)[1]
-    end
         #findall(x->x.health in (MILD,INF,LAT,PRE,ASYMP),humans)
    
-    h_init1 = findall(x->x.health  in (LAT,MILD,MISO,INF,PRE,ASYMP),humans)
-    h_init1 = [h_init1]
-    h_init2 = []
-    h_init3 = []
-    h_init4 = []
     ## save the preisolation isolation parameters
     _fpreiso = p.fpreiso
     p.fpreiso = 0
@@ -383,95 +375,87 @@ function main(ip::ModelParameters,sim::Int64)
     else
         time_vac = 9999 #this guarantees that no one will be vaccinated
     end
+
+    vtimes = [1;p.time_sec_strain;p.time_third_strain;p.time_fourth_strain;p.time_fifth_strain;p.time_sixth_strain;p.modeltime+1]
+    vorder = map(y-> y,1:length(vtimes))
+    perm = sortperm(vtimes)
+    perm = perm[1:findfirst(y-> y == length(vtimes),perm)]
+    vv = vorder[perm]
     # start the time loop
-    for st = 1:p.modeltime
-        if p.ins_sec_strain && st == p.time_sec_strain ##insert second strain
-            insert_infected(PRE, p.initialinf2, 4, 2)[1]
-            h_init2 = findall(x->x.health  in (LAT2,MILD2,INF2,PRE2,ASYMP2),humans)
-            h_init2 = [h_init2]
-        end
-        if p.ins_third_strain && st == p.time_third_strain #insert third strain
-            insert_infected(PRE, p.initialinf3, 4, 3)[1]
-            h_init3 = findall(x->x.health  in (LAT3,MILD3,INF3,PRE3,ASYMP3),humans)
-            h_init3 = [h_init3]
-        end
-        if p.ins_fourth_strain && st == p.time_fourth_strain #insert third strain
-            insert_infected(PRE, p.initialinf4, 4, 4)[1]
-            h_init4 = findall(x->x.health  in (LAT4,MILD4,INF4,PRE4,ASYMP4),humans)
-            h_init4 = [h_init4]
-        end
-        if p.ins_fifth_strain && st == p.time_fifth_strain #insert third strain
-            insert_infected(PRE, p.initialinf5, 4, 5)[1]
-        end
-        if p.ins_sixth_strain && st == p.time_sixth_strain #insert third strain
-            insert_infected(PRE, p.initialinf6, 4, 6)[1]
-        end
-        if length(p.time_change_contact) >= count_change && p.time_change_contact[count_change] == st ###change contact pattern throughout the time
-            setfield!(p, :contact_change_rate, p.change_rate_values[count_change])
-            count_change += 1
-        end
 
-        if p.vaccinating
-            if st == p.time_vac_kids
-                vac_ind = vac_selection(sim,12,agebraks_vac)
-            elseif st == p.time_vac_kids2
-                vac_ind = vac_selection(sim,5,agebraks_vac)
+    initinfvector::Vector{Int64} = [p.initialinf;p.initialinf2;p.initialinf3;p.initialinf4;p.initialinf5;p.initialinf6]
+
+    for ii in 1:(length(vv)-1)
+        insert_infected(PRE, initinfvector[vv[ii]], 4, vv[ii])
+
+        for st = vtimes[vv[ii]]:(vtimes[vv[ii+1]]-1)
             
+            if length(p.time_change_contact) >= count_change && p.time_change_contact[count_change] == st ###change contact pattern throughout the time
+                setfield!(p, :contact_change_rate, p.change_rate_values[count_change])
+                count_change += 1
             end
-        end 
-        if st == p.change_booster_eligibility
-            p.booster_after = deepcopy(p.booster_after_bkup)
-        end
-        # start of day
-        #println("$st")
 
-        if st == p.relaxing_time ### time that people vaccinated people is allowed to go back to normal
-            setfield!(p, :relaxed, true)
-        end
-       #=  if st >= p.time_back_to_normal && count_relax <= p.relax_over
-            #setfield!(p, :contact_change_2, p.contact_change_2+p.relax_rate)
-            p.contact_change_2 += p.relax_rate
-            count_relax += 1
-        end =#
-
-        if time_pos < length(vaccination_days) && time_vac == vaccination_days[time_pos+1]
-            time_pos += 1
-        end
-
-        if time_prop < length(v_prop) && st == v_prop[time_prop]
-            setfield!(p, :vaccine_proportion, fd_prop[time_prop,:])
-            setfield!(p, :vaccine_proportion_2, sd_prop[time_prop,:])
-            time_prop += 1
-        end
-
-
-        time_vac += 1
-        if time_pos > 0 
-            aux_ =  vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2,vac_rate_booster)
-            remaining_doses += aux_[1]
-            total_given += aux_[2]
-        end
-
-        #auxx = findall(x-> x.vac_status > 0,humans)
-        
-       #=  if length(auxx) > 0
-            aa = sum([humans[x].vac_status for x in auxx]) 
-            if aa != total_given
-                println("$st $(time_pos+1) erro $total_given $aa")
+            if p.vaccinating
+                if st == p.time_vac_kids
+                    vac_ind = vac_selection(sim,12,agebraks_vac)
+                elseif st == p.time_vac_kids2
+                    vac_ind = vac_selection(sim,5,agebraks_vac)
+                
+                end
+            end 
+            if st == p.change_booster_eligibility
+                p.booster_after = deepcopy(p.booster_after_bkup)
             end
-        end =#
+            # start of day
+            #println("$st")
 
-        #println([time_vac length(findall(x-> x.vac_status == 2 && x.age >= 18,humans))])
-       
-        _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
-        dyntrans(st, grps,sim)
-       
-        lat[st],hos[st], icu[st], ded[st],lat2[st], hos2[st], icu2[st], ded2[st],lat3[st], hos3[st], icu3[st], ded3[st], lat4[st], hos4[st], icu4[st], ded4[st], lat5[st], hos5[st], icu5[st], ded5[st] = time_update() ###update the system
+            if st == p.relaxing_time ### time that people vaccinated people is allowed to go back to normal
+                setfield!(p, :relaxed, true)
+            end
+        #=  if st >= p.time_back_to_normal && count_relax <= p.relax_over
+                #setfield!(p, :contact_change_2, p.contact_change_2+p.relax_rate)
+                p.contact_change_2 += p.relax_rate
+                count_relax += 1
+            end =#
 
+            if time_pos < length(vaccination_days) && time_vac == vaccination_days[time_pos+1]
+                time_pos += 1
+            end
+
+            if time_prop < length(v_prop) && st == v_prop[time_prop]
+                setfield!(p, :vaccine_proportion, fd_prop[time_prop,:])
+                setfield!(p, :vaccine_proportion_2, sd_prop[time_prop,:])
+                time_prop += 1
+            end
+
+
+            time_vac += 1
+            if time_pos > 0 
+                aux_ =  vac_time!(sim,vac_ind,time_pos+1,vac_rate_1,vac_rate_2,vac_rate_booster)
+                remaining_doses += aux_[1]
+                total_given += aux_[2]
+            end
+
+            #auxx = findall(x-> x.vac_status > 0,humans)
+            
+        #=  if length(auxx) > 0
+                aa = sum([humans[x].vac_status for x in auxx]) 
+                if aa != total_given
+                    println("$st $(time_pos+1) erro $total_given $aa")
+                end
+            end =#
+
+            #println([time_vac length(findall(x-> x.vac_status == 2 && x.age >= 18,humans))])
         
-        # end of day
+            _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
+            dyntrans(st, grps,sim)
+        
+            lat[st],hos[st], icu[st], ded[st],lat2[st], hos2[st], icu2[st], ded2[st],lat3[st], hos3[st], icu3[st], ded3[st], lat4[st], hos4[st], icu4[st], ded4[st], lat5[st], hos5[st], icu5[st], ded5[st] = time_update() ###update the system
+
+            
+            # end of day
+        end
     end
-    
     
     return hmatrix, remaining_doses, total_given, lat,hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5 ## return the model state as well as the age groups. 
 end
@@ -1463,7 +1447,7 @@ function move_to_inf(x::Human)
             end
         elseif x.strain == 6
 
-            h = h*(1-p.reduction_sev_omicron) # 0.7
+            h = h*(1-0.5*p.reduction_sev_omicron) # 0.7
             c = c*(1-0.381)#
             if x.recovered || x.boosted #for booster, it is an assumption
                 h = h/p.hosp_red
@@ -1513,8 +1497,8 @@ function move_to_inf(x::Human)
         end
        
     else ## no hospital for this lucky (but severe) individual 
-        aux = (p.mortality_inc^Int(x.strain==2 || x.strain == 4))
-        aux = x.strain == 4 || x.strain == 6 ? aux*0.0 : aux
+        aux = 0.0#(p.mortality_inc^Int(x.strain==2 || x.strain == 4))
+        #aux = x.strain == 4 || x.strain == 6 ? aux*0.0 : aux
         if x.iso || rand() < p.fsevere 
             x.exp = p.τsevere  ## 1 day isolation for severe cases 
             aux_v = [IISO;IISO2;IISO3;IISO4;IISO5;IISO6]
@@ -1549,8 +1533,8 @@ function move_to_iiso(x::Human)
     gg = findfirst(y-> x.age in y,groups)
     
     mh = [0.0002; 0.0015; 0.011; 0.0802; 0.381] # death rate for severe cases.
-    aux = (p.mortality_inc^Int(x.strain==2 || x.strain == 4))
-    aux = x.strain == 4 || x.strain == 6 ? aux*0.0 : aux
+    aux = 0.0#(p.mortality_inc^Int(x.strain==2 || x.strain == 4))
+    #aux = x.strain == 4 || x.strain == 6 ? aux*0.0 : aux
 
     if rand() < mh[gg]*aux
         x.exp = x.dur[4] 
@@ -1591,8 +1575,8 @@ function move_to_hospicu(x::Human)
             mh = 1.0*mh
             mc = 1.0*mc
         elseif x.strain == 6
-            mh = (1-p.reduction_sev_omicron)*mh
-            mc = (1-p.reduction_sev_omicron)*mc
+            mh = (1-0.5*p.reduction_sev_omicron)*mh
+            mc = (1-0.5*p.reduction_sev_omicron)*mc
         end
 
     else
