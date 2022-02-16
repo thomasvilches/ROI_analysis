@@ -46,7 +46,7 @@ Base.@kwdef mutable struct Human
     days_recovered::Int64 = -1
     boosted::Bool = false
     n_boosted::Int64 = 0
-    recvac::Int64 = 0 # 1 - rec , 2 - vac ... this field shows which immunity will be used for protection
+    recvac::Int64 = 1 # 1 - rec , 2 - vac ... this field shows which immunity will be used for protection
 
     vac_eff_inf::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_symp::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
@@ -204,7 +204,7 @@ export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
-    hmatrix, remaining_doses, total_given, lat,hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5  = main(ip,simnum)            
+    hmatrix, remaining_doses, total_given, lat,hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5, lat6, hos6, icu6, ded6, lat7, hos7, icu7, ded7, lat8, hos8, icu8, ded8  = main(ip,simnum)            
 
     ###use here to create the vector of comorbidity
     # get simulation age groups
@@ -290,7 +290,7 @@ function runsim(simnum, ip::ModelParameters)
         vector_ded[(x.age+1)] += 1
     end
 
-    return (lat=lat, hos=hos, icu=icu, ded=ded, lat2=lat2, hos2=hos2, icu2=icu2, ded2=ded2, lat3=lat3, hos3=hos3, icu3=icu3, ded3=ded3, lat4=lat4, hos4=hos4, icu4=icu4, ded4=ded4, lat5=lat5, hos5=hos5, icu5=icu5, ded5=ded5,
+    return (lat=lat, hos=hos, icu=icu, ded=ded, lat2=lat2, hos2=hos2, icu2=icu2, ded2=ded2, lat3=lat3, hos3=hos3, icu3=icu3, ded3=ded3, lat4=lat4, hos4=hos4, icu4=icu4, ded4=ded4, lat5=lat5, hos5=hos5, icu5=icu5, ded5=ded5, lat6=lat6, hos6=hos6, icu6=icu6, ded6=ded6, lat7=lat7, hos7=hos7, icu7=icu7, ded7=ded7, lat8=lat8, hos8=hos8, icu8=icu8, ded8=ded8,
     a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,
     cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,vector_dead=vector_ded,
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
@@ -349,24 +349,36 @@ function main(ip::ModelParameters,sim::Int64)
     lat3::Vector{Int64} = zeros(Int64,p.modeltime)
     lat4::Vector{Int64} = zeros(Int64,p.modeltime)
     lat5::Vector{Int64} = zeros(Int64,p.modeltime)
+    lat6::Vector{Int64} = zeros(Int64,p.modeltime)
+    lat7::Vector{Int64} = zeros(Int64,p.modeltime)
+    lat8::Vector{Int64} = zeros(Int64,p.modeltime)
 
     hos::Vector{Int64} = zeros(Int64,p.modeltime)
     hos2::Vector{Int64} = zeros(Int64,p.modeltime)
     hos3::Vector{Int64} = zeros(Int64,p.modeltime)
     hos4::Vector{Int64} = zeros(Int64,p.modeltime)
     hos5::Vector{Int64} = zeros(Int64,p.modeltime)
+    hos6::Vector{Int64} = zeros(Int64,p.modeltime)
+    hos7::Vector{Int64} = zeros(Int64,p.modeltime)
+    hos8::Vector{Int64} = zeros(Int64,p.modeltime)
 
     icu::Vector{Int64} = zeros(Int64,p.modeltime)
     icu2::Vector{Int64} = zeros(Int64,p.modeltime)
     icu3::Vector{Int64} = zeros(Int64,p.modeltime)
     icu4::Vector{Int64} = zeros(Int64,p.modeltime)
     icu5::Vector{Int64} = zeros(Int64,p.modeltime)
+    icu6::Vector{Int64} = zeros(Int64,p.modeltime)
+    icu7::Vector{Int64} = zeros(Int64,p.modeltime)
+    icu8::Vector{Int64} = zeros(Int64,p.modeltime)
 
     ded::Vector{Int64} = zeros(Int64,p.modeltime)
     ded2::Vector{Int64} = zeros(Int64,p.modeltime)
     ded3::Vector{Int64} = zeros(Int64,p.modeltime)
     ded4::Vector{Int64} = zeros(Int64,p.modeltime)
     ded5::Vector{Int64} = zeros(Int64,p.modeltime)
+    ded6::Vector{Int64} = zeros(Int64,p.modeltime)
+    ded7::Vector{Int64} = zeros(Int64,p.modeltime)
+    ded8::Vector{Int64} = zeros(Int64,p.modeltime)
     
   
 
@@ -450,14 +462,14 @@ function main(ip::ModelParameters,sim::Int64)
             _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
             dyntrans(st, grps,sim)
         
-            lat[st],hos[st], icu[st], ded[st],lat2[st], hos2[st], icu2[st], ded2[st],lat3[st], hos3[st], icu3[st], ded3[st], lat4[st], hos4[st], icu4[st], ded4[st], lat5[st], hos5[st], icu5[st], ded5[st] = time_update() ###update the system
+            lat[st],hos[st], icu[st], ded[st],lat2[st], hos2[st], icu2[st], ded2[st],lat3[st], hos3[st], icu3[st], ded3[st], lat4[st], hos4[st], icu4[st], ded4[st], lat5[st], hos5[st], icu5[st], ded5[st], lat6[st], hos6[st], icu6[st], ded6[st], lat7[st], hos7[st], icu7[st], ded7[st], lat8[st], hos8[st], icu8[st], ded8[st] = time_update() ###update the system
 
             
             # end of day
         end
     end
     
-    return hmatrix, remaining_doses, total_given, lat,hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5 ## return the model state as well as the age groups. 
+    return hmatrix, remaining_doses, total_given, lat,hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5, lat6, hos6, icu6, ded6, lat7, hos7, icu7, ded7, lat8, hos8, icu8, ded8 ## return the model state as well as the age groups. 
 end
 export main
 
@@ -1046,17 +1058,17 @@ export insert_infected
 function time_update()
     # counters to calculate incidence
 
-    lat_v = zeros(Int64,5)
-    pre_v = zeros(Int64,5)
-    asymp_v = zeros(Int64,5)
-    mild_v = zeros(Int64,5)
-    miso_v = zeros(Int64,5)
-    inf_v = zeros(Int64,5)
-    infiso_v = zeros(Int64,5)
-    hos_v = zeros(Int64,5)
-    icu_v = zeros(Int64,5)
-    rec_v = zeros(Int64,5)
-    ded_v = zeros(Int64,5)
+    lat_v = zeros(Int64,8)
+    pre_v = zeros(Int64,8)
+    asymp_v = zeros(Int64,8)
+    mild_v = zeros(Int64,8)
+    miso_v = zeros(Int64,8)
+    inf_v = zeros(Int64,8)
+    infiso_v = zeros(Int64,8)
+    hos_v = zeros(Int64,8)
+    icu_v = zeros(Int64,8)
+    rec_v = zeros(Int64,8)
+    ded_v = zeros(Int64,8)
 
     
     
@@ -1070,12 +1082,12 @@ function time_update()
         if x.tis >= x.exp    
             
             if x.vac_status == 1
-                ind_vac = 1
+                ind_vac = !x.recovered ? 1 : 6
             elseif x.vac_status == 2
                 if x.boosted
-                    ind_vac = 3
+                    ind_vac  = !x.recovered ? 3 : 8
                 else
-                    ind_vac = 2
+                    ind_vac = !x.recovered ? 2 : 7
                 end
             else
                 if x.recovered
@@ -1113,19 +1125,19 @@ function time_update()
     end
 
      
-        (lat,lat2,lat3,lat4,lat5) = lat_v
-        (mild,mild2,mild3,mild4,mild5) = mild_v
-        (miso,miso2,miso3,miso4,miso5) = miso_v
-        (inf,inf2,inf3,inf4,inf5) = inf_v
-        (infiso,infiso2,infiso3,infiso4,infiso5) = infiso_v
-        (hos,hos2,hos3,hos4,hos5) = hos_v
-        (icu,icu2,icu3,icu4,icu5) = icu_v
-        (rec,rec2,rec3,rec4,rec5) = rec_v
-        (ded,ded2,ded3,ded4,ded5) = ded_v
+        (lat,lat2,lat3,lat4,lat5,lat6,lat7,lat8) = lat_v
+        #(mild,mild2,mild3,mild4,mild5) = mild_v
+        #(miso,miso2,miso3,miso4,miso5) = miso_v
+        #(inf,inf2,inf3,inf4,inf5) = inf_v
+        #(infiso,infiso2,infiso3,infiso4,infiso5) = infiso_v
+        (hos,hos2,hos3,hos4,hos5,hos6,hos7,hos8) = hos_v
+        (icu,icu2,icu3,icu4,icu5,icu6,icu7,icu8) = icu_v
+        #(rec,rec2,rec3,rec4,rec5) = rec_v
+        (ded,ded2,ded3,ded4,ded5,ded6,ded7,ded8) = ded_v
     
     #return (lat, mild, miso, inf, infiso, hos, icu, rec, ded,lat2, mild2, miso2, inf2, infiso2, hos2, icu2, rec2, ded2,lat3, mild3, miso3, inf3, infiso3, hos3, icu3, rec3, ded3, lat4, mild4, miso4, inf4, infiso4, hos4, icu4, rec4, ded4, lat5, mild5, miso5, inf5, infiso5, hos5, icu5, rec5, ded5, lat6, mild6, miso6, inf6, infiso6, hos6, icu6, rec6, ded6)
     #this is related to vaccination status, not to strain anymore
-    return lat, hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5
+    return lat, hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5, lat6, hos6, icu6, ded6, lat7, hos7, icu7, ded7, lat8, hos8, icu8, ded8
     
 end
 export time_update
