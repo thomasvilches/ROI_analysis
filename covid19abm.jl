@@ -143,6 +143,15 @@ end
     [[[0.66;0.7],[0.7,0.97]],[[0.8;0.82],[0.82,0.95]],[[0.88;0.95],[0.95;0.95]],[[0.9;0.91],[0.91,0.98]],[[0.66;0.7],[0.7,0.97]],[[0.744;0.744],[0.744,0.81]]],#### 50:5:80
     [[[0.921]],[[0.816]],[[0.34]],[[0.781]],[[0.921]],[[0.34]]]]#### 50:5:80
 
+    # ----- Recovery efficacy ----- #
+    #https://www.nejm.org/doi/full/10.1056/NEJMc2200133
+    # using infection the same as symptoms
+    rec_eff_inf::Vector{Float64} = [1.0;0.902;0.857;0.92;1.0;0.56]
+    rec_eff_symp::Vector{Float64} = [1.0;0.902;0.857;0.92;1.0;0.56]
+    rec_eff_sev::Vector{Float64} = [1.0;0.694;0.88;1.0;1.0;0.878]
+    
+    # ------------------------------ #
+
 
     time_change_contact::Array{Int64,1} = [1;map(y-> 95+y,0:3);map(y->134+y,0:9);map(y->166+y,0:13);map(y->199+y,0:35)]
     change_rate_values::Array{Float64,1} = [1.0;map(y-> 1.0-0.01*y,1:4);map(y-> 0.96-(0.055/10)*y,1:10);map(y-> 0.90+(0.1/14)*y,1:14);map(y-> 1.0-(0.34/36)*y,1:36)]
@@ -1211,7 +1220,7 @@ function move_to_latent(x::Human)
             else
                 aux = 1.0#*(1-aux_red)
             end
-
+            aux = p.rec_eff_symp[x.strain]*aux
         elseif x.recvac == 2
 
             if x.vac_status*x.protected > 0
@@ -1228,6 +1237,7 @@ function move_to_latent(x::Human)
                 else
                     aux = 1.0
                 end
+                aux = p.rec_eff_symp[x.strain]*aux
             end
         else
             error("move to latent recvac")
@@ -1307,7 +1317,7 @@ function move_to_pre(x::Human)
             else
                 aux = 1.0#*(1-aux_red)
             end
-
+            aux = p.rec_eff_sev[x.strain]*aux
         elseif x.recvac == 2
 
             if x.vac_status*x.protected > 0
@@ -1322,6 +1332,7 @@ function move_to_pre(x::Human)
                 else
                     aux = 1.0
                 end
+                aux = p.rec_eff_sev[x.strain]*aux
             end
         end
     else
@@ -1840,8 +1851,8 @@ function dyntrans(sys_time, grps,sim)
                                 aux = 1.0
                             end
                             
-                            aux = aux*(1-aux_red)
-
+                            #aux = aux*(1-aux_red)
+                            aux = p.rec_eff_inf[x.strain]*aux
                         elseif y.recvac == 2
 
                             if y.vac_status*y.protected > 0
@@ -1859,7 +1870,7 @@ function dyntrans(sys_time, grps,sim)
                                     aux = 1.0
                                 end
                                 
-                                aux = aux*(1-aux_red)
+                                aux = p.rec_eff_inf[x.strain]*aux
                             end
                         end
 
