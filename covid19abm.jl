@@ -161,7 +161,7 @@ end
     relaxed::Bool = false
     relaxing_time::Int64 = 215 ### relax measures for vaccinated
     status_relax::Int16 = 2
-    relax_after::Int64 = 1
+    relax_after::Int64 = 14
 
     relax_over::Int64 = 92
     relax_rate::Float64 = (1-contact_change_2)/relax_over
