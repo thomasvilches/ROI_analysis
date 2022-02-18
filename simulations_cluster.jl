@@ -183,7 +183,7 @@ end
 
 
 
-function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyorkcity",ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,index::Int64 = 0,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,nsims::Int64=500)
+function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyorkcity",ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,index::Int64 = 0,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,tbn::Int64 = 999,ro::Int64 = 1,nsims::Int64=500)
     
     
     #b = bd[h_i]
@@ -193,7 +193,7 @@ function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyo
     status_relax = 2, relax_after = 14,file_index = $index,
     modeltime=$mt, prov = Symbol($province),
     time_change_contact = $dc,
-    change_rate_values = $rc)
+    change_rate_values = $rc,time_back_to_normal = $tbn,relax_over = $ro)
 
     folder = create_folder(ip,province,calibrating)
 

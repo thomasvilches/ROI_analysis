@@ -163,10 +163,10 @@ end
     status_relax::Int16 = 2
     relax_after::Int64 = 14
 
-    relax_over::Int64 = 92
+    relax_over::Int64 = 40
     relax_rate::Float64 = (1-contact_change_2)/relax_over
     turnon::Int64 = 1
-    time_back_to_normal::Int64 = 999
+    time_back_to_normal::Int64 = 425
 
     day_inital_vac::Int64 = 105 ###this must match to the matrices in matrice code
     time_vac_kids::Int64 = 253
@@ -433,11 +433,11 @@ function main(ip::ModelParameters,sim::Int64)
             if st == p.relaxing_time ### time that people vaccinated people is allowed to go back to normal
                 setfield!(p, :relaxed, true)
             end
-        #=  if st >= p.time_back_to_normal && count_relax <= p.relax_over
+          if st >= p.time_back_to_normal && count_relax <= p.relax_over
                 #setfield!(p, :contact_change_2, p.contact_change_2+p.relax_rate)
                 p.contact_change_2 += p.relax_rate
                 count_relax += 1
-            end =#
+            end
 
             if time_pos < length(vaccination_days) && time_vac == vaccination_days[time_pos+1]
                 time_pos += 1
