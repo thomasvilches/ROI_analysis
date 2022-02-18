@@ -1598,8 +1598,8 @@ function move_to_hospicu(x::Human)
             mh = 1.0*mh
             mc = 1.0*mc
         elseif x.strain == 6
-            mh = (1-0.5*p.reduction_sev_omicron)*mh
-            mc = (1-0.5*p.reduction_sev_omicron)*mc
+            mh = (1-0.75*p.reduction_sev_omicron)*mh
+            mc = (1-0.75*p.reduction_sev_omicron)*mc
         end
 
     else
