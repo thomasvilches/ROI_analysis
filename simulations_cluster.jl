@@ -60,8 +60,9 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     #c1 = Symbol.((:LAT, :ASYMP, :INF, :PRE, :MILD,:IISO, :HOS, :ICU, :DED), :_INC)
     #c2 = Symbol.((:LAT, :ASYMP, :INF, :PRE, :MILD,:IISO, :HOS, :ICU, :DED), :_PREV)
     
-    c1 = Symbol.((:LAT, :MILD, :INF, :HOS, :ICU, :DED,:LAT2, :MILD2, :INF2, :HOS2, :ICU2, :DED2,:LAT3, :MILD3, :INF3, :HOS3, :ICU3, :DED3,:LAT4, :MILD4, :INF4, :HOS4, :ICU4, :DED4,:LAT5, :MILD5, :INF5, :HOS5, :ICU5, :DED5,:LAT6, :MILD6, :INF6, :HOS6, :ICU6, :DED6), :_INC)
-    c2 = Symbol.((:LAT, :MILD, :INF, :HOS, :ICU, :DED,:LAT2, :MILD2, :INF2, :HOS2, :ICU2, :DED2,:LAT3, :MILD3, :INF3, :HOS3, :ICU3, :DED3,:LAT4, :MILD4, :INF4, :HOS4, :ICU4, :DED4,:LAT5, :MILD5, :INF5, :HOS5, :ICU5, :DED5,:LAT6, :MILD6, :INF6, :HOS6, :ICU6, :DED6), :_PREV)
+    c1 = Symbol.((:LAT, :ASYMP, :MILD, :INF, :HOS, :ICU, :DED,:LAT2, :ASYMP2, :MILD2, :INF2, :HOS2, :ICU2, :DED2,:LAT3, :ASYMP3, :MILD3, :INF3, :HOS3, :ICU3, :DED3,:LAT4, :ASYMP4, :MILD4, :INF4, :HOS4, :ICU4, :DED4,:LAT5, :ASYMP5, :MILD5, :INF5, :HOS5, :ICU5, :DED5,:LAT6, :ASYMP6, :MILD6, :INF6, :HOS6, :ICU6, :DED6), :_INC)
+    #c2 = Symbol.((:LAT, :MILD, :INF, :HOS, :ICU, :DED,:LAT2, :MILD2, :INF2, :HOS2, :ICU2, :DED2,:LAT3, :MILD3, :INF3, :HOS3, :ICU3, :DED3,:LAT4, :MILD4, :INF4, :HOS4, :ICU4, :DED4,:LAT5, :MILD5, :INF5, :HOS5, :ICU5, :DED5,:LAT6, :MILD6, :INF6, :HOS6, :ICU6, :DED6), :_PREV)
+    #c2 = Symbol.((:HOS, :ICU,:HOS2, :ICU2, :HOS3, :ICU3, :HOS4, :ICU4, :HOS5, :ICU5, :HOS6, :ICU6), :_PREV)
     
     #c2 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2), :_PREV)
     for (k, df) in mydfs
@@ -183,7 +184,7 @@ end
 
 
 
-function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyorkcity",ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,index::Int64 = 0,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,tbn::Int64 = 999,ro::Int64 = 1,nsims::Int64=500)
+function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyorkcity",ic1::Int64=1,ic2::Int64=1,ic3::Int64=1,ic4::Int64=1,ic5::Int64=1,ic6::Int64=1,index::Int64 = 0,rc=[0.0],dc=[0],mt::Int64=500,vac::Bool=true,tbn::Int64 = 999,ro::Int64 = 1,dr::Int64=0,nsims::Int64=500)
     
     
     #b = bd[h_i]
@@ -193,7 +194,7 @@ function run_param_scen_cal(calibrating::Bool,b::Float64,province::String="newyo
     status_relax = 2, relax_after = 14,file_index = $index,
     modeltime=$mt, prov = Symbol($province),
     time_change_contact = $dc,
-    change_rate_values = $rc,time_back_to_normal = $tbn,relax_over = $ro)
+    change_rate_values = $rc,time_back_to_normal = $tbn,relax_over = $ro, reduce_days = $dr)
 
     folder = create_folder(ip,province,calibrating)
 

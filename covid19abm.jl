@@ -89,24 +89,24 @@ end
     sec_strain_trans::Float64 = 1.5#1.5 #transmissibility of second strain
     ins_sec_strain::Bool = true #insert second strain?
     initialinf2::Int64 = 1 #number of initial infected of second strain
-    time_sec_strain::Int64 = 125 #when will the second strain introduced -- Jan 3
+    time_sec_strain::Int64 = 90 #when will the second strain introduced -- Jan 3
 
     ## Gamma - P.1
     ins_third_strain::Bool = true #insert third strain?
     initialinf3::Int64 = 1 #number of initial infected of third strain
-    time_third_strain::Int64 = 201 #when will the third strain introduced - P1 March 20
+    time_third_strain::Int64 = 162 #when will the third strain introduced - P1 March 20
     third_strain_trans::Float64 = 1.6 #transmissibility of third strain
     
     ## Delta - B.1.617.2
     ins_fourth_strain::Bool = true #insert fourth strain?
     initialinf4::Int64 = 1 #number of initial infected of fourth strain
-    time_fourth_strain::Int64 = 173 #when will the fourth strain introduced
+    time_fourth_strain::Int64 = 163 #when will the fourth strain introduced
     fourth_strain_trans::Float64 = 1.3 #transmissibility compared to second strain strain
 
     ## Iota - B.1.526
     ins_fifth_strain::Bool = true #insert fifth strain?
     initialinf5::Int64 = 1 #number of initial infected of fifth strain
-    time_fifth_strain::Int64 = 7 #when will the fifth strain introduced
+    time_fifth_strain::Int64 = 55 #when will the fifth strain introduced
     fifth_strain_trans::Float64 = 1.35 #transmissibility of fifth strain
 
     ##OMICRON
@@ -184,6 +184,7 @@ end
     #one waning rate for each efficacy? For each strain? I can change this structure based on that
 
     waning::Int64 = 1
+    reduce_days::Int64 = 0
     ### after calibration, how much do we want to increase the contact rate... in this case, to reach 70%
     ### 0.5*0.95 = 0.475, so we want to multiply this by 1.473684211
 end
@@ -215,7 +216,7 @@ function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 
     hmatrix, remaining_doses, total_given, lat,hos, icu, ded,lat2, hos2, icu2, ded2,lat3, hos3, icu3, ded3, lat4, hos4, icu4, ded4, lat5, hos5, icu5, ded5, lat6, hos6, icu6, ded6, lat7, hos7, icu7, ded7, lat8, hos8, icu8, ded8  = main(ip,simnum)            
 
-    ###use here to create the vector of comorbidity
+    # use here to create the vector of comorbidity
     # get simulation age groups
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
     #ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
@@ -660,11 +661,9 @@ function vac_time!(sim::Int64,vac_ind::Vector{Vector{Int64}},time_pos::Int64,vac
         if vac == 1
             pos = map(k->findall(y-> humans[y].vac_status == 1 && humans[y].vaccine_n == vac && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
             pos2 = map(k->findall(y-> humans[y].vac_status == 0 && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
-        
         elseif vac == 2
             pos = map(k->findall(y-> humans[y].vac_status == 1 && humans[y].vaccine_n == vac && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
             pos2 = map(k->findall(y-> humans[y].vac_status == 0 && humans[y].age >= 18 && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
-        
         else
             pos = map(k->findall(y-> humans[y].vac_status == 1 && humans[y].vaccine_n == vac && humans[y].days_vac >= p.vac_period[humans[y].vaccine_n] && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
             pos2 = map(k->findall(y-> humans[y].vac_status == 0 && humans[y].age >= 18 && !(humans[y].health_status in aux_states),vac_ind[k]),1:length(vac_ind))
@@ -1183,12 +1182,14 @@ function sample_epi_durations(y::Human)
     asy_dist = Gamma(5, 1)
     inf_dist = Gamma((3.2)^2/3.7, 3.7/3.2)
 
+    aux = y.vac_status > 1 || y.recovered ? p.reduce_days : 0
 
     latents = Int.(round.(rand(lat_dist)))
     pres = Int.(round.(rand(pre_dist)))
     latents = latents - pres # ofcourse substract from latents, the presymp periods
-    asymps = Int.(ceil.(rand(asy_dist)))
-    infs = Int.(ceil.(rand(inf_dist)))
+    asymps = max(Int.(ceil.(rand(asy_dist)))-aux,1)
+    infs = max(Int.(ceil.(rand(inf_dist)))-aux,1)
+
     return (latents, asymps, pres, infs)
 end
 
@@ -1464,13 +1465,13 @@ function move_to_inf(x::Human)
         =#
         if x.strain == 4
             if !x.recovered && x.vac_status < 2
-                h = h*2.26 #https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(21)00475-8/fulltext
+                h = h*2.65 #2.26 #https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(21)00475-8/fulltext
             elseif x.recovered || x.boosted #for booster, it is an assumption
                 h = h/p.hosp_red #
             end
         elseif x.strain == 6
 
-            h = h*(1-0.5*p.reduction_sev_omicron) # 0.7
+            h = h*(1-0.3*p.reduction_sev_omicron) # 0.7
             c = c*(1-0.381)#
             if x.recovered || x.boosted #for booster, it is an assumption
                 h = h/p.hosp_red
@@ -1591,19 +1592,18 @@ function move_to_hospicu(x::Human)
 
     elseif x.strain == 2  || x.strain == 4  || x.strain == 6
     
-        mh = 0.5*[0.0016, 0.0016, 0.0025, 0.0107, 0.02, 0.038, 0.15, 0.66]
-        mc = 0.5*[0.0033, 0.0033, 0.0036, 0.0131, 0.022, 0.04, 0.2, 0.70]
+        mh = 0.7*[0.0016, 0.0016, 0.0025, 0.0107, 0.02, 0.038, 0.15, 0.66]
+        mc = 0.7*[0.0033, 0.0033, 0.0036, 0.0131, 0.022, 0.04, 0.2, 0.70]
         
         if x.strain == 4
-            mh = 1.0*mh
-            mc = 1.0*mc
+            mh = 0.75*mh
+            mc = 0.75*mc
         elseif x.strain == 6
-            mh = (1-0.75*p.reduction_sev_omicron)*mh
-            mc = (1-0.75*p.reduction_sev_omicron)*mc
+            mh = (1-0.9*p.reduction_sev_omicron)*mh
+            mc = (1-0.9*p.reduction_sev_omicron)*mc
         end
 
     else
-      
             error("No strain - hospicu")
     end
     
