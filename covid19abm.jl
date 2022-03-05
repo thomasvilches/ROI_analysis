@@ -227,7 +227,7 @@ function runsim(simnum, ip::ModelParameters)
     spl = _splitstate(hmatrix, ags)
     work = _collectdf(spl[1])
     
-    age_groups = [0:4, 5:11, 12:17, 18:49, 50:64, 65:79, 80:999]
+    age_groups = [0:4, 5:17, 18:29, 30:39, 40:49, 50:64, 65:74, 75:84, 85:999]
     ags = map(x->findfirst(y-> x.age in y, age_groups),humans) # store a vector of the age group distribution 
     spl = _splitstate(hmatrix, ags)
     ag1 = _collectdf(spl[1])
@@ -237,9 +237,12 @@ function runsim(simnum, ip::ModelParameters)
     ag5 = _collectdf(spl[5])
     ag6 = _collectdf(spl[6])
     ag7 = _collectdf(spl[7])
+    ag8 = _collectdf(spl[8])
+    ag9 = _collectdf(spl[9])
     insertcols!(all, 1, :sim => simnum); insertcols!(ag1, 1, :sim => simnum); insertcols!(ag2, 1, :sim => simnum); 
     insertcols!(ag3, 1, :sim => simnum); insertcols!(ag4, 1, :sim => simnum); insertcols!(ag5, 1, :sim => simnum);
-    insertcols!(ag6, 1, :sim => simnum); insertcols!(ag7, 1, :sim => simnum); insertcols!(work, 1, :sim => simnum);
+    insertcols!(ag6, 1, :sim => simnum); insertcols!(ag7, 1, :sim => simnum); insertcols!(ag8, 1, :sim => simnum); 
+    insertcols!(ag9, 1, :sim => simnum); insertcols!(work, 1, :sim => simnum);
     
 
     coverage1 = length(findall(x-> x.age >= 18 && x.vac_status >= 1,humans))/length(findall(x-> x.age >= 18,humans))
@@ -301,7 +304,7 @@ function runsim(simnum, ip::ModelParameters)
     end
 
     return (lat=lat, hos=hos, icu=icu, ded=ded, lat2=lat2, hos2=hos2, icu2=icu2, ded2=ded2, lat3=lat3, hos3=hos3, icu3=icu3, ded3=ded3, lat4=lat4, hos4=hos4, icu4=icu4, ded4=ded4, lat5=lat5, hos5=hos5, icu5=icu5, ded5=ded5, lat6=lat6, hos6=hos6, icu6=icu6, ded6=ded6, lat7=lat7, hos7=hos7, icu7=icu7, ded7=ded7, lat8=lat8, hos8=hos8, icu8=icu8, ded8=ded8,
-    a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,
+    a=all, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7,g8=ag8,g9=ag9, work = work,
     cov1 = coverage1,cov2 = coverage2,cov12 = coverage12,cov22 = coverage22,vector_dead=vector_ded,
     n_pfizer = n_pfizer, n_moderna = n_moderna, n_jensen = n_jensen, n_pfizer_w = n_pfizer_w, n_moderna_w = n_moderna_w, n_jensen_w = n_jensen_w,
     n_pfizer_2 = n_pfizer_2, n_moderna_2 = n_moderna_2, n_jensen_2 = n_jensen_2, n_pfizer_w_2 = n_pfizer_w_2, n_moderna_w_2 = n_moderna_w_2, n_jensen_w_2 = n_jensen_w_2, 
