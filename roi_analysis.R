@@ -8,20 +8,17 @@ library(readxl)
 cost_setup = 3022840
 
 #Expenditure on advertisement and awareness campaigns
-cost_advertisement = 242986305.11
+cost_advertisement = 242986305.11 #242,986,305.11
 #Total cost of vaccine storage and transport 
 cost_storage_and_transport = 7205179.89
 #Cost of vaccine administration (all other costs) 
-cost_administration = 1752152923.18
+cost_administration = 1752152923.18 #1,752,152,923.18
 #Other vaccination expenses (mobile and homebound vaccinations) 
 #Expenses that will benefit all vaccinations. ie. CIR, DOITT developed applications
 expenses_benefits = 31000000
 # Total cost of vaccines
-vaccines_cost = 282663374.8
-#Cost of vaccine doses (not using anymore)
-cost_moderna = 15 #Moderna
-cost_pfizer = 19.5 #Pfizer
-cost_jj = 10 #J&J
+vaccines_cost = 282663374.8 #282,663,374.8
+
 
 #Indirect costs
 pcpi_nyc = 74472 ## Per-capita personal income NYC
@@ -32,12 +29,12 @@ pm_adverse_2 = 0.748 #proportion of adverse reaction First dose Moderna
 pp_adverse_1 = 0.48 #proportion of adverse reaction First dose Moderna
 pp_adverse_2 = 0.642 #proportion of adverse reaction First dose Moderna
 pjj_adverse = 0.76 #proportion of adverse reaction First dose Moderna
-wdl_adverse_1 = 1.66 #working days lost due to adverse reactions firt dose
-wdl_adverse_2 = 1.39 #working days lost due to adverse reactions
+wdl_adverse_1 = 1.66 #(sd = 1.48)working days lost due to adverse reactions first dose
+wdl_adverse_2 = 1.39 #(sd = 0.82)working days lost due to adverse reactions
 
 #Direct costs
 cost_outpatient_appointment = 1020.1 #outpatient appointment (symptomatic cases)
-n_outpatient_visits = 0.5 #per mild case - ASSUMED
+n_outpatient_visits = 0.5 #(total number of mild cases / 2) per mild case - ASSUMED
 cost_transp_outpatients = 44.49 #for each visit
 cost_hosp_nICU = 39499.18 #cost of hospital non-ICU admission
 cost_hosp_ICU = 113249.31 #cost of ICU admission
@@ -45,13 +42,17 @@ n_ED_visits = 1 #for each severe non-hospitalized case- ASSUMED
 cost_ED_care = 3305.01 #cost ED care
 n_EMS_calls = 2.5 #per hospitalized case
 cost_transp_EMS = 900
-cost_lifelost = 455484
+cost_lifelost = 455484 #per year of life lost #average of statistical life in US is
+# between US$ 9-10 mi with life expectancy of 79 years - REVISE
 
 # Cost of Illness
 
 symp_isolation = 10 #days out of work
-duration_hosp_niCU = c(10,10,10,10,10,10) #data for each strain for non-ICU
-duration_ICU = c(10,10,10,10,10,10) #data for each strain for ICU
+# hospitalization - take it from JAMA paper and add another 4 days
+duration_hosp_niCU = c(6,6,6,6,6,3) #data for each strain for non-ICU
+duration_ICU = c(15,15,15,15,15,7)  #data for each strain for ICU
+days_beforeafter = 3.5+4
+
 
 basedate = as.Date("2020-09-01")
 basedate_vac = as.Date("2020-12-14")
@@ -103,7 +104,7 @@ direct_vaccination_cost = cost_setup+cost_administration+cost_advertisement+
   cost_storage_and_transport+expenses_benefits+vaccines_cost
 
 # Vaccination costs (indirect) -------------------------------------------------------
-
+# calculate the loss of workdays to go to get vaccine from 15-64 y.o.
 ## Let's read the data that was provided
 data_vac = read_excel("data/NYC_Daily_COVID-19_Vax_by_UHF_AgeGroup_2022-02-08_1500.xlsx")
 head(data_vac)
@@ -144,7 +145,6 @@ n_days_vac = (n_vacs_first+n_vacs_second+n_vacs_booster)*wdl_vac*perc_vac_emp
 # Now, for adverse reaction, we need to calculate the proportion
 # of each vaccine that was administered
 
-
 #Let's read the data
 
 data = read.csv("data/Dose_admin_bymonth_2022-02-08_1500.csv",sep = ";")
@@ -165,13 +165,13 @@ second = pp$second/sum(pp$second)
 boost = pp$booster/sum(pp$booster)
 
 # number of working days lost due to vaccination
-n_days_ad_jensen = (n_vacs_second*second[1]*wdl_adverse_1+n_vacs_booster*boost[1]*wdl_adverse_2)*pjj_adverse
+n_days_ad_jensen = (n_vacs_second*second[1]*wdl_adverse_1+n_vacs_booster*boost[1]*wdl_adverse_2)*pjj_adverse*perc_vac_emp
 n_days_ad_moderna = 
-  (n_vacs_second*second[2]+n_vacs_booster*boost[2])*wdl_adverse_2*pm_adverse_2+
-  n_vacs_first*first[2]*wdl_adverse_1*pm_adverse_1
+  (n_vacs_second*second[2]+n_vacs_booster*boost[2])*wdl_adverse_2*pm_adverse_2*perc_vac_emp+
+  n_vacs_first*first[2]*wdl_adverse_1*pm_adverse_1*perc_vac_emp
 n_days_ad_pfizer = 
-  (n_vacs_second*second[3]+n_vacs_booster*boost[3])*wdl_adverse_2*pp_adverse_2+
-  n_vacs_first*first[3]*wdl_adverse_1*pp_adverse_1
+  (n_vacs_second*second[3]+n_vacs_booster*boost[3])*wdl_adverse_2*pp_adverse_2*perc_vac_emp+
+  n_vacs_first*first[3]*wdl_adverse_1*pp_adverse_1*perc_vac_emp
 
 # total
 n_days_work_lost = n_days_vac+n_days_ad_pfizer+n_days_ad_jensen+n_days_ad_moderna
@@ -208,7 +208,7 @@ head(data.cases)
 # we want to see the hospitalization scaling factor
 
 #total hospitalization per 100,000 population from the beginning of vaccination
-total_hosp = data.cases %>% filter(date_of_interest >= basedate_vac) %>% pull(inc_hosp) %>% sum()/population*100000
+total_hosp = data.cases %>% filter(date_of_interest >= basedate_vac,date_of_interest <= enddate) %>% pull(inc_hosp) %>% sum()/population*100000
 total_hosp
 
 #Let's see this number in the simulation
@@ -234,14 +234,14 @@ inf = Reduce('+',read_file_incidence(idx_1,"inf")) # adding the strains
 mild = Reduce('+',read_file_incidence(idx_1,"mild")) # adding the strains
 
 # Let's set inf to be severe non-hospitalized
-inf = inf - hos - icu
+inf_nh = inf - hos - icu
 # number of extra hospitalization after scaling
 n_extra = (sum.sim.hos+sum.sim.icu)*factor_hos - (sum.sim.hos+sum.sim.icu)
 
 #total number
 sum.sim.asymp = sum(asymp[v_date >= basedate_vac & v_date <= enddate,])/ncol(asymp)
 sum.sim.mild = sum(mild[v_date >= basedate_vac & v_date <= enddate,])/ncol(mild)
-sum.sim.sev = sum(inf[v_date >= basedate_vac & v_date <= enddate,])/ncol(inf)
+sum.sim.sev = sum(inf_nh[v_date >= basedate_vac & v_date <= enddate,])/ncol(inf_nh)
 
 factor_non_hos = (sum(c(sum.sim.asymp,sum.sim.mild,sum.sim.sev))-n_extra)/sum(c(sum.sim.asymp,sum.sim.mild,sum.sim.sev))
 
@@ -250,7 +250,7 @@ factor_non_hos = (sum(c(sum.sim.asymp,sum.sim.mild,sum.sim.sev))-n_extra)/sum(c(
 sum.sim = colSums(mild)
 sum.sim.mild = boot::boot(sum.sim,fc,100)$t[,1]
 
-sum.sim = colSums(inf)
+sum.sim = colSums(inf_nh)
 sum.sim.inf = boot::boot(sum.sim,fc,100)$t[,1]
 
 sum.sim = colSums(hos)
@@ -303,14 +303,14 @@ inf = Reduce('+',read_file_incidence(idx_2,"inf")) # adding the strains
 mild = Reduce('+',read_file_incidence(idx_2,"mild")) # adding the strains
 
 # Let's set inf to be severe non-hospitalized
-inf = inf - hos - icu
+inf_nh = inf - hos - icu
 # number of extra hospitalization after scaling
 n_extra = (sum.sim.hos2+sum.sim.icu2)*factor_hos - (sum.sim.hos2+sum.sim.icu2)
 
 #total number
 sum.sim.asymp2 = sum(asymp[v_date >= basedate_vac & v_date <= enddate,])/ncol(asymp)
 sum.sim.mild2 = sum(mild[v_date >= basedate_vac & v_date <= enddate,])/ncol(mild)
-sum.sim.sev2 = sum(inf[v_date >= basedate_vac & v_date <= enddate,])/ncol(inf)
+sum.sim.sev2 = sum(inf_nh[v_date >= basedate_vac & v_date <= enddate,])/ncol(inf_nh)
 
 factor_non_hos = (sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))-n_extra)/sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))
 
@@ -320,7 +320,7 @@ factor_non_hos = (sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))-n_extra)/sum
 sum.sim = colSums(mild)
 sum.sim.mild2 = boot::boot(sum.sim,fc,100)$t[,1]
 
-sum.sim = colSums(inf)
+sum.sim = colSums(inf_nh)
 sum.sim.inf2 = boot::boot(sum.sim,fc,100)$t[,1]
 
 sum.sim = colSums(hos)
@@ -360,12 +360,13 @@ boxplot(cost_hospital2-cost_hospital)
 # 
 # https://stacks.cdc.gov/view/cdc/113758
 # https://stacks.cdc.gov/view/cdc/114452
+# REVIEW this code March 10
 
 cost_indirect_ill1 = (sum.sim.mild+sum.sim.inf+sum.sim.hos+sum.sim.icu)*population/100000*symp_isolation*pcpi_nyc/365
 cost_indirect_ill2 = (sum.sim.mild2+sum.sim.inf2+sum.sim.hos2+sum.sim.icu2)*population/100000*symp_isolation*pcpi_nyc/365
 
-# Years of Life Lost ------------------------------------------------------
 
+# Years of Life Lost ------------------------------------------------------
 
 #fist of all, let's find the scaling factor for deaths.
 
@@ -374,7 +375,7 @@ ded = Reduce('+', deaths)
 nn = nrow(ded)
 v_date = basedate+seq(0,nn-1) #creating a vector with the dates of simulation
 sum.sim.ded = sum(ded[v_date >= basedate_vac & v_date <= enddate,])/ncol(ded)
-total_deaths = data.cases %>% filter(date_of_interest >= basedate_vac) %>% pull(inc_deaths) %>% sum()/population*100000
+total_deaths = data.cases %>% filter(date_of_interest >= basedate_vac,date_of_interest <= enddate) %>% pull(inc_deaths) %>% sum()/population*100000
 total_deaths
 factor_deaths = total_deaths/sum.sim.ded
 
@@ -404,23 +405,28 @@ cost_yll1 = (vyll1)*cost_lifelost*population/100000*factor_deaths
 cost_yll2 = (vyll2)*cost_lifelost*population/100000*factor_deaths
 
 
+cost_yll1 = (vyll1)*126000*population/100000*factor_deaths
+cost_yll2 = (vyll2)*126000*population/100000*factor_deaths
+
 
 
 # Results -----------------------------------------------------------------
 
-total_cost_vaccination = direct_vaccination_cost+indirect_vaccination_cost+cost_hospital+cost_indirect_ill1+cost_yll1
+#Initial Value Investment
+IVI = direct_vaccination_cost
+total_cost_vaccination = indirect_vaccination_cost+cost_hospital+cost_indirect_ill1+cost_yll1
 total_cost_no_vac = cost_hospital2+cost_indirect_ill2+cost_yll2
 
+# Final value of investiment
+FVI = total_cost_no_vac - total_cost_vaccination
+ROI = (FVI - IVI)/IVI
 total_cost_no_vac
 total_cost_vaccination
 
 df = data.frame(cost = c(total_cost_vaccination,total_cost_no_vac),
                 scen= c(rep("Vaccination",length(total_cost_vaccination)),rep("No Vaccination",length(total_cost_no_vac))))
 
-
-percentage_cost = (total_cost_no_vac - total_cost_vaccination)/total_cost_no_vac
-percentage_cost
-boxplot(percentage_cost)
+boxplot(ROI)
 
 
 
@@ -435,58 +441,6 @@ total_cost_vaccination2 = total_cost_vaccination*4
 df = data.frame(cost = c(total_cost_vaccination2,total_cost_no_vac2),
                 scen= c(rep("Vaccination",length(total_cost_vaccination2)),rep("No Vaccination",length(total_cost_no_vac2))))
 # 
-# ggplot()+geom_boxplot(data = df,aes(x = scen, y = cost, fill = scen))+scale_x_discrete(name = "Scenario")+scale_y_continuous(name = "Cost (US$)")+
-#   scale_y_continuous(sec.axis = sec_axis(~./4,name = "Cost of vaccination scenario (US$)"))+
-#   scale_fill_brewer(palette = "Set1",name = "Scenario")+
-#   labs(y="Cost of no vaccination scenario (US$)")+
-#   theme_bw()+theme(legend.position = "none",axis.title = element_text(face="bold"),
-#                    axis.text.x = element_text(colour="black", size = 15),
-#                    axis.text.y.left = element_text(colour="black", size = 14,angle=90,hjust = 0.5),
-#                    axis.text.y.right = element_text(colour="black", size = 14,angle=270,hjust = 0.5),
-#                    axis.title.y = element_text(colour="black", size = 20),
-#                    axis.title.x = element_text(colour="black", size = 20),
-#                    legend.title = element_text(face="bold",size = 20),
-#                    legend.text = element_text(size = 16),
-#                    plot.margin = unit(c(1,0.2,0.2,0.2), "cm"))
-# ggsave(
-#   "../figures/cost2.pdf",
-#   device = "pdf",
-#   width = 5,
-#   height = 6,
-#   dpi = 300,
-# )
-# 
-# 
-# df %>% group_by(scen) %>% 
-#   summarise(m = mean(cost),ci1 = quantile(cost,probs = 0.05,names = F),ci2 = quantile(cost,probs = 0.95,names = F))%>%
-# ggplot()+
-#   geom_errorbarh(aes(xmin = ci1,xmax = ci2, y = scen, color = scen), size=3, alpha = 0.6,height =0.1)+
-#   geom_point(aes(x = m, y = scen, fill = scen, shape = scen), size=6, alpha = 0.9)+
-#   scale_x_continuous(sec.axis = sec_axis(~./4,name = "Cost of vaccination scenario (US$)"))+
-#   scale_y_discrete(label = NULL)+
-#   scale_shape_manual(values = c(21,22),name = NULL)+
-#   scale_color_manual(values = c("#FF33FF","#33FFFF"),name = NULL)+
-#   scale_fill_manual(values = c("#FF33FF","#33FFFF"),name = NULL)+
-#   labs(x="Cost of no vaccination scenario (US$)",y=NULL)+
-#   theme_bw()+theme(legend.position = "bottom",axis.title = element_text(face="bold"),
-#                    axis.text.x = element_text(colour="black", size = 15),
-#                    axis.ticks.y = element_line(size = NA),
-#                    axis.line.x.top = element_line(color = alpha("#33FFFF",0.6),size = 1.5),
-#                    axis.line.x.bottom = element_line(color = alpha("#FF33FF",0.6),size = 1.5),
-#                    axis.text.y.left = element_text(colour="black", size = 14,angle=90,hjust = 0.5),
-#                    axis.text.y.right = element_text(colour="black", size = 14,angle=270,hjust = 0.5),
-#                    axis.title.y = element_text(colour="black", size = 18),
-#                    axis.title.x = element_text(colour="black", size = 18),
-#                    legend.title = element_text(face="bold",size = 18),
-#                    legend.text = element_text(size = 14),
-#                    plot.margin = unit(c(1,0.2,0.2,0.9), "cm"))
-# ggsave(
-#   "../figures/cost2.pdf",
-#   device = "pdf",
-#   width = 6,
-#   height = 5,
-#   dpi = 300,
-# )
 
 
 ggplot(df)+
@@ -552,25 +506,3 @@ ggplot(dd)+
                    plot.margin = unit(c(1,0.8,0.2,0.9), "cm"))
 
 
-
-
-
-# data age groups ---------------------------------------------------------
-# 
-# for(g in c("ag1","ag2","ag3","ag4","ag5","ag6","ag7","ag8","ag9")){
-#   
-#   ag1 = Reduce("+",read_file_incidence(1,"ded",c(1,2,3,4,5,6),"newyorkcity","121",g))
-#   #df = data.frame(time = seq(1:nrow(ag1)),ag1)
-#   write.table(ag1,paste0("datadeaths/simlevel_ded_inc_",g,".dat"),row.names = F,col.names = F)
-# 
-# }
-# 
-# 
-# for(g in c("ag1","ag2","ag3","ag4","ag5","ag6","ag7","ag8","ag9")){
-#   
-#   ag1 = Reduce("+",read_file_incidence(2,"ded",c(1,2,3,4,5,6),"newyorkcity","121",g))
-#   #df = data.frame(time = seq(1:nrow(ag1)),ag1)
-#   write.table(ag1,paste0("datadeaths2/simlevel_ded_inc_",g,".dat"),row.names = F,col.names = T)
-#   
-# }
-# 
