@@ -50,7 +50,7 @@ cost_lifelost = 455484 #per year of life lost #average of statistical life in US
 symp_isolation = 10 #days out of work
 # hospitalization - take it from JAMA paper and add another 4 days
 duration_hosp_niCU = c(6,6,6,6,6,3) #data for each strain for non-ICU
-duration_ICU = c(15,15,15,15,15,7)  #data for each strain for ICU
+duration_hosp_ICU = c(15,15,15,15,15,7)  #data for each strain for ICU
 days_beforeafter = 3.5+4
 
 
@@ -312,7 +312,7 @@ sum.sim.asymp2 = sum(asymp[v_date >= basedate_vac & v_date <= enddate,])/ncol(as
 sum.sim.mild2 = sum(mild[v_date >= basedate_vac & v_date <= enddate,])/ncol(mild)
 sum.sim.sev2 = sum(inf_nh[v_date >= basedate_vac & v_date <= enddate,])/ncol(inf_nh)
 
-factor_non_hos = (sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))-n_extra)/sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))
+factor_non_hos_2 = (sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))-n_extra)/sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))
 
 
 # Bootstraping
@@ -332,8 +332,8 @@ sum.sim.icu2 = boot::boot(sum.sim,fc,100)$t[,1]
 # we increased the hospitalizations by some amount, therefore,
 # we decrease the other infections proportionately
 
-sum.sim.mild2 = sum.sim.mild2*factor_non_hos
-sum.sim.inf2 = sum.sim.inf2*factor_non_hos
+sum.sim.mild2 = sum.sim.mild2*factor_non_hos_2
+sum.sim.inf2 = sum.sim.inf2*factor_non_hos_2
 
 sum.sim.hos2 = sum.sim.hos2*factor_hos
 sum.sim.icu2 = sum.sim.icu2*factor_hos
@@ -362,9 +362,60 @@ boxplot(cost_hospital2-cost_hospital)
 # https://stacks.cdc.gov/view/cdc/114452
 # REVIEW this code March 10
 
-cost_indirect_ill1 = (sum.sim.mild+sum.sim.inf+sum.sim.hos+sum.sim.icu)*population/100000*symp_isolation*pcpi_nyc/365
-cost_indirect_ill2 = (sum.sim.mild2+sum.sim.inf2+sum.sim.hos2+sum.sim.icu2)*population/100000*symp_isolation*pcpi_nyc/365
+# We need to look at specific age groups. Therefore, it is better if we create a function
+# for computing the total number of days lost in hospital
 
+#index,type,strain = c(1,2,3,4,5,6),st2 = "newyorkcity",beta = "121",ag="all"
+
+days_of_leave <- function(agegroup = "all",idx = 1){
+  hos_sim = read_file_incidence(idx,"hos",c(1,2,3,4,5,6),"newyorkcity","121",agegroup)
+  icu_sim = read_file_incidence(idx,"icu",c(1,2,3,4,5,6),"newyorkcity","121",agegroup)
+  
+  inf_sim = read_file_incidence(idx,"inf",c(1,2,3,4,5,6),"newyorkcity","121",agegroup)
+  asymp_sim = read_file_incidence(idx,"asymp",c(1,2,3,4,5,6),"newyorkcity","121",agegroup)
+  mild_sim = read_file_incidence(idx,"mild",c(1,2,3,4,5,6),"newyorkcity","121",agegroup)
+  
+  #for symptoms
+  inf_nh = Reduce('+',inf_sim) - Reduce('+',hos_sim) -Reduce('+',hos_sim) 
+  
+  fh = c(factor_non_hos,factor_non_hos_2)
+  symp = colSums(inf_nh+Reduce('+',mild_sim)+Reduce('+',asymp_sim))*fh[idx]
+  
+  v_symp = boot::boot(symp,fc,100)$t[,1]
+  
+  h1 = lapply(hos_sim, colSums)
+  h1b = lapply(h1, boot::boot,statistic=fc,R=100)
+  h11b = lapply(h1b, function(x) x[["t"]])
+  h11b = do.call(cbind,h11b)
+  
+  hc1 = lapply(icu_sim, colSums)
+  hc1b = lapply(hc1, boot::boot,statistic=fc,R=100)
+  hc11b = lapply(hc1b, function(x) x[["t"]])
+  hc11b = do.call(cbind,hc11b)
+  
+  h11b = factor_hos*h11b
+  hc11b = factor_hos*hc11b
+  
+  dh1 = h11b %*% (duration_hosp_niCU+days_beforeafter)
+  dc1 = hc11b %*% (duration_hosp_ICU+days_beforeafter)
+  dsymp = v_symp*symp_isolation
+  
+  total_days = dh1+dc1+dsymp
+  return(total_days)
+}
+
+ag = c("ag3","ag4","ag5","ag6")
+total_days_1 = lapply(ag, days_of_leave, idx = 1)
+total_days_2 = lapply(ag, days_of_leave, idx = 2)
+
+total1_hos = Reduce("+",total_days_1)[,1]
+total2_hos = Reduce("+",total_days_2)[,1]
+
+
+#
+
+cost_indirect_ill1 = total1_hos*perc_vac_emp*pcpi_nyc/365*population/100000
+cost_indirect_ill2 = total2_hos*perc_vac_emp*pcpi_nyc/365*population/100000
 
 # Years of Life Lost ------------------------------------------------------
 
@@ -417,7 +468,7 @@ IVI = direct_vaccination_cost
 total_cost_vaccination = indirect_vaccination_cost+cost_hospital+cost_indirect_ill1+cost_yll1
 total_cost_no_vac = cost_hospital2+cost_indirect_ill2+cost_yll2
 
-# Final value of investiment
+# Final value of investment
 FVI = total_cost_no_vac - total_cost_vaccination
 ROI = (FVI - IVI)/IVI
 total_cost_no_vac
@@ -444,8 +495,9 @@ df = data.frame(cost = c(total_cost_vaccination2,total_cost_no_vac2),
 
 
 ggplot(df)+
-  geom_violin(aes(x = cost/(1e9), y = scen, fill = scen), size=1, alpha = 0.7)+
-  geom_jitter(aes(x = cost/(1e9), y = scen, fill = scen, shape = scen),size=2)+
+  geom_violin(aes(x = cost/(1e9), y = scen, fill = scen), size=0.5, alpha = 0.7)+
+  #geom_jitter(aes(x = cost/(1e9), y = scen, fill = scen, shape = scen),size=2)+
+  geom_boxplot(aes(x = cost/(1e9), y = scen),size=1,width=0.2,alpha = 0.0)+
   scale_x_continuous(sec.axis = sec_axis(~./4,name = "Cost of vaccination scenario (billion US$)"))+
   scale_y_discrete(label = NULL)+
   scale_shape_manual(values = c(21,22),name = NULL)+
@@ -482,19 +534,19 @@ ggsave(
 
 
 
-percentage_cost = (total_cost_no_vac - (total_cost_vaccination-direct_vaccination_cost)/direct_vaccination_cost
-percentage_cost
 
-dd = as.data.frame(percentage_cost)
+dd = as.data.frame(ROI)
 
 ggplot(dd)+
-  geom_violin(aes(x = percentage_cost, y = "t"), size=1, fill = "#FF330000", alpha = 0.7)+
-  geom_jitter(aes(x = percentage_cost, y = "t"),size=2)+
+  geom_violin(aes(x = ROI, y = "t"), size=0.5, fill = "#FF330000", alpha = 0.7)+
+  #geom_jitter(aes(x = percentage_cost, y = "t"),size=2)+
+  geom_boxplot(aes(x = ROI, y = "t"),width = 0.2,size=1,alpha = 0.0)+
   scale_y_discrete(label = NULL)+
   scale_shape_manual(values = c(21,22),name = NULL)+
   scale_fill_manual(values = c("#FF33FF","#33FFFF"),name = NULL)+
-  labs(x="Proportion of savings",y=NULL)+
-  theme_bw()+theme(legend.position = "bottom",axis.title = element_text(face="bold"),
+  labs(x=NULL,y=NULL)+
+  theme_fivethirtyeight()+
+  theme_bw()+theme(legend.position = "none",axis.title = element_text(face="bold"),
                    axis.text.x = element_text(colour="black", size = 15),
                    axis.ticks.y = element_line(size = NA),
                    axis.text.y.left = element_text(colour="black", size = 14,angle=90,hjust = 0.5),
@@ -506,3 +558,10 @@ ggplot(dd)+
                    plot.margin = unit(c(1,0.8,0.2,0.9), "cm"))
 
 
+ggsave(
+  "../figures/ROI.png",
+  device = "png",
+  width = 6,
+  height = 5,
+  dpi = 300,
+)
