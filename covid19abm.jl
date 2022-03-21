@@ -51,7 +51,7 @@ Base.@kwdef mutable struct Human
     vac_eff_inf::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_symp::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
     vac_eff_sev::Array{Array{Array{Float64,1},1},1} = [[[0.0]]]
-
+    dayofdeath::Int64 = -1
     waning::Vector{Float64} = [1.0;1.0]
     
 end
@@ -76,8 +76,6 @@ end
     frelasymp::Float64 = 0.26 ## relative transmission of asymptomatic
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
     #vaccine_ef::Float16 = 0.0   ## change this to Float32 typemax(Float32) typemax(Float64)
-    vac_com_dec_max::Float16 = 0.0 # how much the comorbidity decreases the vac eff
-    vac_com_dec_min::Float16 = 0.0 # how much the comorbidity decreases the vac eff
     herd::Int8 = 0 #typemax(Int32) ~ millions
     file_index::Int16 = 0
     nstrains::Int16 = 6
@@ -294,7 +292,7 @@ function runsim(simnum, ip::ModelParameters)
     aux =  findall(x-> x.vaccine_n == 3 && x.age in range_work && x.boosted, humans)
     n_jensen_w_3 = length(aux)
 
-    pos = findall(y-> y in (11,22,33,44,55,66),hmatrix[:,end])
+    pos = findall(y-> hmatrix[y,end] in (11,22,33,44,55,66) && humans[y].dayofdeath >= p.day_inital_vac,1:length(humans))
 
     vector_ded::Vector{Int64} = zeros(Int64,100)
 
@@ -475,7 +473,7 @@ function main(ip::ModelParameters,sim::Int64)
             _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
             dyntrans(st, grps,sim)
         
-            lat[st],hos[st], icu[st], ded[st],lat2[st], hos2[st], icu2[st], ded2[st],lat3[st], hos3[st], icu3[st], ded3[st], lat4[st], hos4[st], icu4[st], ded4[st], lat5[st], hos5[st], icu5[st], ded5[st], lat6[st], hos6[st], icu6[st], ded6[st], lat7[st], hos7[st], icu7[st], ded7[st], lat8[st], hos8[st], icu8[st], ded8[st] = time_update() ###update the system
+            lat[st],hos[st], icu[st], ded[st],lat2[st], hos2[st], icu2[st], ded2[st],lat3[st], hos3[st], icu3[st], ded3[st], lat4[st], hos4[st], icu4[st], ded4[st], lat5[st], hos5[st], icu5[st], ded5[st], lat6[st], hos6[st], icu6[st], ded6[st], lat7[st], hos7[st], icu7[st], ded7[st], lat8[st], hos8[st], icu8[st], ded8[st] = time_update(st) ###update the system
 
             
             # end of day
@@ -1066,7 +1064,7 @@ function insert_infected(health, num, ag,strain)
 end
 export insert_infected
 
-function time_update()
+function time_update(st::Int64)
     # counters to calculate incidence
 
     lat_v = zeros(Int64,8)
@@ -1121,7 +1119,7 @@ function time_update()
                 :HOS  => begin move_to_hospicu(x); hos_v[ind_vac] += 1; end 
                 :ICU  => begin move_to_hospicu(x); icu_v[ind_vac] += 1; end
                 :REC  => begin move_to_recovered(x); rec_v[ind_vac] += 1; end
-                :DED  => begin move_to_dead(x); ded_v[ind_vac] += 1; end
+                :DED  => begin move_to_dead(x); ded_v[ind_vac] += 1; x.dayofdeath = st; end
                 _    => begin dump(x); error("swap expired, but no swap set."); end
             end
         end
