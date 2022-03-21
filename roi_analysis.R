@@ -13,7 +13,7 @@ library(gghalves)      ## off-set jitter
 library(systemfonts)   ## custom fonts
 library(latex2exp)
 # Parameters -------------------------------------------------------------------
-
+set.seed(1432)
 #Total cost of vaccine clinic setup 
 cost_setup = 3022840
 
@@ -105,7 +105,7 @@ idx_2 = 2
 # And a function to bootstrap 
   
   fc <- function(d, i){
-    return(mean(d[i]))
+    return(mean(d[i],na.rm=T))
   }
 
   # discount formula for YLL
@@ -442,18 +442,19 @@ factor_deaths = total_deaths/sum.sim.ded
 
 # Let's read the file containing the amount of people that died at age x in each sim
 
+life_exp = read.csv("data/life_exp.csv",sep = ";",h=F)$V2[1:nrow(age_of_death)]
+
 age_of_death= read.table("data/results_prob_0_121_1_newyorkcity/year_of_death.dat",h=F)
 dim(age_of_death)
-
-life_exp = read.csv("data/life_exp.csv",sep = ";",h=F)$V2[1:nrow(age_of_death)]
 
 vector_cost = unlist(lapply(life_exp,formula))
 #plot(vector_cost)
 
 vyll = as.vector(vector_cost %*% as.matrix(age_of_death))
 
-vyll1 = boot::boot(vyll*factor_deaths*population/100000,fc,500)$t[,1]
-
+vyll1 = boot::boot(vyll*factor_deaths*population/100000,fc,500)
+mean(vyll1$t)
+boot::boot.ci(vyll1)
 
 
 age_of_death= read.table("data/results_prob_0_121_2_newyorkcity/year_of_death.dat",h=F)
@@ -461,13 +462,56 @@ dim(age_of_death)
 
 vyll = as.vector(vector_cost %*% as.matrix(age_of_death))
 
-vyll2 = boot::boot(vyll*factor_deaths*population/100000,fc,500)$t[,1]
+vyll2 = boot::boot(vyll*factor_deaths*population/100000,fc,500)
+mean(vyll2$t)
+boot::boot.ci(vyll2)
+
+cost_yll1 = (vyll1$t[,1])
+cost_yll2 = (vyll2$t[,1])
 
 
-cost_yll1 = (vyll1)
-cost_yll2 = (vyll2)
+# YLL ---------------------------------------------------------------------
 
 
+age_of_death= read.table("data/results_prob_0_121_1_newyorkcity/year_of_death.dat",h=F)
+dim(age_of_death)
+
+#plot(vector_cost)
+
+vyll = as.vector(life_exp %*% as.matrix(age_of_death))
+
+vyll1 = boot::boot(vyll*factor_deaths*population/100000,fc,500)
+mean(vyll1$t)
+boot::boot.ci(vyll1)
+
+n_people1 = colSums(age_of_death)
+average_yll1 = vyll/n_people1
+
+quantile(average_yll1,c(0.025,0.975,0.5),na.rm = T)
+
+age_of_death= read.table("data/results_prob_0_121_2_newyorkcity/year_of_death.dat",h=F)
+dim(age_of_death)
+n_people2 = colSums(age_of_death)
+#plot(vector_cost)
+
+vyll = as.vector(life_exp %*% as.matrix(age_of_death))
+
+vyll2 = boot::boot(vyll*factor_deaths*population/100000,fc,500)
+mean(vyll2$t)
+boot::boot.ci(vyll2)
+
+
+df = data.frame(value=c(vyll1$t[,1],vyll2$t[,1]),scen = c(rep("vac",length(vyll1$t[,1])),rep("novac",length(vyll2$t[,1]))))
+
+kruskal.test(value~scen, data = df)
+
+np1 = boot::boot(n_people1*factor_deaths*population/100000,fc,500)$t[,1]
+np2 = boot::boot(n_people2*factor_deaths*population/100000,fc,500)$t[,1]
+
+
+cc = (cost_yll2-cost_yll1)/(np2-np1)
+mean(cc)
+quantile(cc,c(0.025,0.975,0.5),na.rm=T)
 # Results -----------------------------------------------------------------
 
 #Initial Value Investment
@@ -497,10 +541,11 @@ df %>% group_by(scen) %>% summarise(m = mean(cost),ci1 = quantile(cost,0.025,nam
 
 
 
+pal_plots = c("#885687","#9ebcda","#756bb1","#bcbddc")
+
 # Better plot -------------------------------------------------------------
 
 factor_cost = total_cost_no_vac/total_cost_vaccination
-
 
 total_cost_no_vac2 = total_cost_no_vac
 total_cost_vaccination2 = total_cost_vaccination*4 #this is for plot
@@ -589,77 +634,72 @@ theme_flip <-
   
   
   
+  
+  
+  ## general theme
+  theme_set(theme_void(base_family = "Helvetica"))
+  
+  theme_update(
+    axis.text.x = element_text(color = "black", face = "bold", size = 26, 
+                               margin = margin(t = 6)),
+    #axis.text.y = element_text(color = "black", size = 22, hjust = 1, 
+    #margin = margin(r = 6), family = "Arial"),
+    axis.line.x = element_line(color = "black", size = 1),
+    panel.grid.major.y = element_line(color = "grey90", size = .6),
+    plot.background = element_rect(fill = "white", color = "white"),
+    plot.margin = margin(rep(20, 4))
+  )
+  ## theme for horizontal charts
+  theme_flip <-
+    theme(
+      axis.text.x = element_text(face = "plain", family = "Helvetica", size = 22),
+      #axis.text.y = element_text(face = "bold", family = "Arial", size = 26),
+      axis.title.x = element_text(face = "bold", family = "Helvetica", size = 22),
+      panel.grid.major.x = element_blank(),#element_line(color = "grey90", size = .6),
+      panel.grid.major.y = element_blank(),
+      axis.ticks.x = element_line(color = "black", size = 1.0),
+      axis.ticks.length.x = unit(0.1,"cm"),
+      legend.position = "none", 
+      legend.text = element_text(family = "Helvetica", size = 18),
+      legend.title = element_text(face = "bold", size = 18),
+      panel.border = element_rect(colour = "black", fill=NA, size=1)
+    )
 
 dd = as.data.frame(ROI)
+df_point = data.frame(x = c(as.factor(1),as.factor(1)),y = quantile(ROI,c(0.025,0.975),name=F))
 
-
-## general theme
-theme_set(theme_void(base_family = "Helvetica"))
-
-theme_update(
-  axis.text.x = element_text(color = "black", face = "bold", size = 26, 
-                             margin = margin(t = 6)),
-  #axis.text.y = element_text(color = "black", size = 22, hjust = 1, 
-                             #margin = margin(r = 6), family = "Arial"),
-  axis.line.x = element_line(color = "black", size = 1),
-  panel.grid.major.y = element_line(color = "grey90", size = .6),
-  plot.background = element_rect(fill = "white", color = "white"),
-  plot.margin = margin(rep(20, 4))
-)
-## theme for horizontal charts
-theme_flip <-
-  theme(
-    axis.text.x = element_text(face = "plain", family = "Helvetica", size = 22),
-    #axis.text.y = element_text(face = "bold", family = "Arial", size = 26),
-    axis.title.x = element_text(face = "bold", family = "Helvetica", size = 22),
-    panel.grid.major.x = element_blank(),#element_line(color = "grey90", size = .6),
-    panel.grid.major.y = element_blank(),
-    axis.ticks.x = element_line(color = "black", size = 1.0),
-    axis.ticks.length.x = unit(0.1,"cm"),
-    legend.position = "none", 
-    legend.text = element_text(family = "Helvetica", size = 18),
-    legend.title = element_text(face = "bold", size = 18),
-    panel.border = element_rect(colour = "black", fill=NA, size=1)
-  )
-
-ggplot(dd, aes(x = forcats::fct_rev(as.factor(1)), y = ROI)) +
+ggplot(dd, aes(x = forcats::fct_rev(as.factor(1)), y = ROI,color = as.factor(1),fill = as.factor(1))) +
   geom_boxplot(
-    width = .1, fill = "white",
-    size = 1.5, outlier.shape = NA,
-    color = my_pal[2]
-  ) +
+    width = .08, fill = "white",
+    size = 1.1, outlier.shape = NA) +
   ggdist::stat_halfeye(
     adjust = .33,
-    width = .67, 
+    width = .3, 
     color = NA,
-    position = position_nudge(x = .09),
-    fill = my_pal[2]
+    position = position_nudge(x = .07)
   ) +
   gghalves::geom_half_point(
     side = "l", 
-    range_scale = .3, 
-    alpha = .5, size = 1.5,
-    color = my_pal[2],fill = my_pal[3],position = position_nudge(x = .03)
+    range_scale = .2, 
+    alpha = .5, size = 1.5,position = position_nudge(x = .08)
   ) +
+  stat_summary(fun = mean,geom="point", color= "#88419d", fill = "#88419d",shape = 21, size = 2.5)+
+  geom_point(data=df_point, aes(x = x,y=y),color= "#88419d", fill = "#88419d",shape = 23, size = 2.5)+
+  scale_y_continuous(limits= c(54.2,63.8),breaks = seq(55,63,2),expand=expansion(mult=c(0,0)))+
   scale_x_discrete(expand=expansion(mult=c(0,0)))+
-  labs(x=NULL,y="Return of investment")+
+  labs(y="Return of investment",y=NULL)+
   coord_flip() +
+  scale_color_manual(values = pal_plots[1], guide = "none") +
+  scale_fill_manual(values = pal_plots[1], guide = "none") +
   theme_flip
 
-ggsave(
-  "../figures/ROI.png",
-  device = "png",
-  width = 6,
-  height = 3.5,
-  dpi = 300
-)
 
 
 ggsave(
   "../figures/ROI.pdf",
   device = "pdf",
-  width = 6,
-  height = 3.5,
+  width = 7,
+  height = 4,
   dpi = 300
 )
 
@@ -680,75 +720,40 @@ colSums(table,na.rm=T) %>% format( big.mark=",")
 # Data for plot -----------------------------------------------------------
 
 dd = data.frame(ROI=ROI_society)
+df_point = data.frame(x = c(as.factor(1),as.factor(1)),y = quantile(ROI_society,c(0.025,0.975),name=F))
 
 
-## general theme
-theme_set(theme_void(base_family = "Helvetica"))
-
-theme_update(
-  axis.text.x = element_text(color = "black", face = "bold", size = 26, 
-                             margin = margin(t = 6)),
-  #axis.text.y = element_text(color = "black", size = 22, hjust = 1, 
-  #margin = margin(r = 6), family = "Arial"),
-  axis.line.x = element_line(color = "black", size = 1),
-  panel.grid.major.y = element_line(color = "grey90", size = .6),
-  plot.background = element_rect(fill = "white", color = "white"),
-  plot.margin = margin(rep(20, 4))
-)
-## theme for horizontal charts
-theme_flip <-
-  theme(
-    axis.text.x = element_text(face = "plain", family = "Helvetica", size = 22),
-    #axis.text.y = element_text(face = "bold", family = "Arial", size = 26),
-    axis.title.x = element_text(face = "bold", family = "Helvetica", size = 22),
-    panel.grid.major.x = element_blank(),#element_line(color = "grey90", size = .6),
-    panel.grid.major.y = element_blank(),
-    axis.ticks.x = element_line(color = "black", size = 1.0),
-    axis.ticks.length.x = unit(0.1,"cm"),
-    legend.position = "none", 
-    legend.text = element_text(family = "Helvetica", size = 18),
-    legend.title = element_text(face = "bold", size = 18),
-    panel.border = element_rect(colour = "black", fill=NA, size=1)
-  )
-
-ggplot(dd, aes(x = forcats::fct_rev(as.factor(1)), y = ROI)) +
+ggplot(dd, aes(x = forcats::fct_rev(as.factor(1)), y = ROI,color = as.factor(1),fill = as.factor(1)))+
   geom_boxplot(
-    width = .1, fill = "white",
-    size = 1.5, outlier.shape = NA,
-    color = my_pal[2]
-  ) +
+  width = .08, fill = "white",
+  size = 1.1, outlier.shape = NA) +
   ggdist::stat_halfeye(
     adjust = .33,
-    width = .67, 
+    width = .3, 
     color = NA,
-    position = position_nudge(x = .09),
-    fill = my_pal[2]
+    position = position_nudge(x = .07)
   ) +
   gghalves::geom_half_point(
     side = "l", 
-    range_scale = .3, 
-    alpha = .5, size = 1.5,
-    color = my_pal[2],fill = my_pal[3],position = position_nudge(x = .03)
+    range_scale = .2, 
+    alpha = .5, size = 1.5,position = position_nudge(x = .08)
   ) +
+  stat_summary(fun = mean,geom="point", color= "#6a51a3", fill = "#6a51a3",shape = 21, size = 2.5)+
+  geom_point(data=df_point, aes(x = x,y=y),color= "#6a51a3", fill = "#6a51a3",shape = 23, size = 2.5)+
+  scale_y_continuous(limits= c(26.5,32.5),breaks = seq(27,32,1),expand=expansion(mult=c(0,0)))+
   scale_x_discrete(expand=expansion(mult=c(0,0)))+
-  labs(x=NULL,y="Return of investment")+
+  labs(y="Return of investment",y=NULL)+
   coord_flip() +
+  scale_color_manual(values = pal_plots[3], guide = "none") +
+  scale_fill_manual(values = pal_plots[3], guide = "none") +
   theme_flip
-
-ggsave(
-  "../figures/ROI_soc.png",
-  device = "png",
-  width = 6,
-  height = 3.5,
-  dpi = 300
-)
 
 
 ggsave(
   "../figures/ROI_soc.pdf",
   device = "pdf",
-  width = 6,
-  height = 3.5,
+  width = 7,
+  height = 4,
   dpi = 300
 )
 
@@ -764,6 +769,134 @@ table %>% mutate(Vaccination = format(Vaccination, big.mark=","),
 
 
 colSums(table,na.rm=T) %>% format( big.mark=",")
+
+
+# YLL figure --------------------------------------------------------------
+
+mean(cost_yll2)/mean(cost_yll1)
+
+df_plot = data.frame(cost = c(cost_yll1,cost_yll2),
+                     scen= c(rep("Vaccination",length(cost_yll1)),rep("No Vaccination",length(cost_yll2))))
+# 
+
+df_plot
+
+theme_set(theme_void(base_family = "Helvetica"))
+
+theme_update(
+  axis.text.x = element_text(color = "black", face = "bold", size = 26, 
+                             margin = margin(t = 6)),
+  axis.text.y = element_text(color = "black", size = 22, hjust = 1, 
+                             margin = margin(r = 6), family = "Helvetica"),
+  axis.line.x = element_line(color = "black", size = 1),
+  panel.grid.major.y = element_line(color = "grey90", size = .6),
+  plot.background = element_rect(fill = "white", color = "white"),
+  plot.margin = margin(rep(20, 4))
+)
+
+#15946e
+## custom colors
+#my_pal <- rcartocolor::carto_pal(n = 8, name = "Bold")[c(1, 3, 7, 2)]
+my_pal <- c(rcartocolor::carto_pal(n = 8, name = "Bold")[c(1, 3, 7)],"#15946e")
+
+## theme for horizontal charts
+theme_flip <-
+  theme(
+    axis.text.x = element_text(face = "plain", family = "Helvetica", size = 22),
+    axis.text.y = element_text(face = "bold", family = "Helvetica", size = 30),
+    axis.title.x = element_text(face = "bold", family = "Helvetica", size = 22),
+    panel.grid.major.x = element_blank(),#element_line(color = "grey90", size = .6),
+    panel.grid.major.y = element_blank(),
+    axis.ticks.x = element_line(color = "black", size = 1.0),
+    axis.ticks.length.x = unit(0.1,"cm"),
+    legend.position = "none", 
+    legend.text = element_text(family = "Helvetica", size = 18),
+    legend.title = element_text(face = "bold", size = 18),
+    panel.border = element_rect(colour = "black", fill=NA, size=1)
+  )
+
+label_t = c(TeX(r"($C_v$)"),TeX(r"($C_b$)"))
+
+df_point = data.frame(x = c("Vaccination","Vaccination"),y = c(32,35.8))
+
+ggplot(df_plot %>% filter(scen == "Vaccination"), aes(x = forcats::fct_rev(scen), y = cost/(1e9), 
+                    color = scen, fill = scen)) +
+  geom_boxplot(
+    width = .08, fill = "white",
+    size = 1.1, outlier.shape = NA) +
+  ggdist::stat_halfeye(
+    adjust = .33,
+    width = .3, 
+    color = NA,
+    position = position_nudge(x = .07)
+  ) +
+  gghalves::geom_half_point(
+    side = "l", 
+    range_scale = .2, 
+    alpha = .5, size = 1.5,position = position_nudge(x = .08)
+  ) +
+  stat_summary(fun = mean,geom="point", color= "#88419d", fill = "#88419d",shape = 21, size = 2.5)+
+  geom_point(data=df_point, aes(x = x,y=y),color= "#88419d", fill = "#88419d",shape = 23, size = 2.5)+
+  scale_y_continuous(limits = c(30.5,37.5),breaks = seq(31,37), expand=expansion(mult=c(0,0)))+
+  scale_x_discrete(breaks = c("Vaccination"),labels = label_t, expand=expansion(mult=c(0,0)))+
+  labs(y="Cost (billion US$)",y=NULL)+
+  coord_flip() +
+  scale_color_manual(values = pal_plots[1], guide = "none") +
+  scale_fill_manual(values = pal_plots[1], guide = "none") +
+  theme_flip
+
+
+
+
+ggsave(
+  "../figures/VSLvac.pdf",
+  device = "pdf",
+  width = 7,
+  height = 4,
+  dpi = 300,
+)
+
+df_point = data.frame(x = c("No Vaccination","No Vaccination"),y = c(140.7,157.7))
+
+
+ggplot(df_plot %>% filter(scen == "No Vaccination"), aes(x = forcats::fct_rev(scen), y = cost/(1e9), 
+                    color = scen, fill = scen)) +
+  geom_boxplot(
+    width = .08, fill = "white",
+    size = 1.1, outlier.shape = NA) +
+  ggdist::stat_halfeye(
+    adjust = .33,
+    width = .3, 
+    color = NA,
+    position = position_nudge(x = .07)
+  ) +
+  gghalves::geom_half_point(
+    side = "l", 
+    range_scale = .2, 
+    alpha = .5, size = 1.5,position = position_nudge(x = .08)
+  ) +
+  stat_summary(fun = mean,geom="point", color= "#6a51a3", fill = "#6a51a3",shape = 21, size = 2.5)+
+  geom_point(data=df_point, aes(x = x,y=y),color= "#6a51a3", fill = "#6a51a3",shape = 23, size = 2.5)+
+  scale_y_continuous(limits = c(137.5,162.5),breaks = seq(140,160,4),expand=expansion(mult=c(0,0)))+
+  scale_x_discrete(breaks = c("No Vaccination"),labels = label_t, expand=expansion(mult=c(0,0)))+
+  labs(y="Cost (billion US$)",y=NULL)+
+  coord_flip() +
+  scale_color_manual(values = pal_plots[3], guide = "none") +
+  scale_fill_manual(values = pal_plots[3], guide = "none") +
+  theme_flip
+
+
+
+
+ggsave(
+  "../figures/VSLnovac.pdf",
+  device = "pdf",
+  width = 7,
+  height = 4,
+  dpi = 300,
+)
+
+
 
 # Let's read the file containing the amount of people that died at age x in each sim
 
