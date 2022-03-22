@@ -262,17 +262,17 @@ factor_non_hos = (sum(c(sum.sim.asymp,sum.sim.mild,sum.sim.sev))-n_extra)/sum(c(
 
 # Now we want to bootstrap the mean of those matrices
 
-sum.sim = colSums(mild)
-sum.sim.mild = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.mild = colSums(mild)
+#sum.sim.mild = boot::boot(sum.sim,fc,500)$t[,1]
 
-sum.sim = colSums(inf_nh)
-sum.sim.inf = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.inf = colSums(inf_nh)
+#sum.sim.inf = boot::boot(sum.sim,fc,500)$t[,1]
 
-sum.sim = colSums(hos)
-sum.sim.hos = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.hos = colSums(hos)
+#sum.sim.hos = boot::boot(sum.sim,fc,500)$t[,1]
 
-sum.sim = colSums(icu)
-sum.sim.icu = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.icu = colSums(icu)
+#sum.sim.icu = boot::boot(sum.sim,fc,500)$t[,1]
 
 # we increased the hospitalizations by some amount, therefore,
 # we decrease the other infections proportionately
@@ -332,17 +332,17 @@ factor_non_hos_2 = (sum(c(sum.sim.asymp2,sum.sim.mild2,sum.sim.sev2))-n_extra)/s
 
 # Bootstraping
 
-sum.sim = colSums(mild)
-sum.sim.mild2 = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.mild2 = colSums(mild)
+#sum.sim.mild2 = boot::boot(sum.sim,fc,500)$t[,1]
 
-sum.sim = colSums(inf_nh)
-sum.sim.inf2 = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.inf2 = colSums(inf_nh)
+#sum.sim.inf2 = boot::boot(sum.sim,fc,500)$t[,1]
 
-sum.sim = colSums(hos)
-sum.sim.hos2 = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.hos2 = colSums(hos)
+#sum.sim.hos2 = boot::boot(sum.sim,fc,500)$t[,1]
 
-sum.sim = colSums(icu)
-sum.sim.icu2 = boot::boot(sum.sim,fc,500)$t[,1]
+sum.sim.icu2 = colSums(icu)
+#sum.sim.icu2 = boot::boot(sum.sim,fc,500)$t[,1]
 
 # we increased the hospitalizations by some amount, therefore,
 # we decrease the other infections proportionately
@@ -392,17 +392,19 @@ days_of_leave <- function(agegroup = "all",idx = 1){
   #we are considering Asymp, because the code is calibrated for reported cases
   symp = colSums(inf_nh+Reduce('+',mild_sim)+Reduce('+',asymp_sim))*fh[idx]
   
-  v_symp = boot::boot(symp,fc,500)$t[,1]
+  v_symp = symp#boot::boot(symp,fc,500)$t[,1]
   
   h1 = lapply(hos_sim, colSums)
-  h1b = lapply(h1, boot::boot,statistic=fc,R=500)
-  h11b = lapply(h1b, function(x) x[["t"]])
-  h11b = do.call(cbind,h11b)
+  #h1b = lapply(h1, boot::boot,statistic=fc,R=500)
+  #h11b = lapply(h1b, function(x) x[["t"]])
+  #h11b = do.call(cbind,h11b)
+  h11b = do.call(cbind,h1)
   
   hc1 = lapply(icu_sim, colSums)
-  hc1b = lapply(hc1, boot::boot,statistic=fc,R=500)
-  hc11b = lapply(hc1b, function(x) x[["t"]])
-  hc11b = do.call(cbind,hc11b)
+  #hc1b = lapply(hc1, boot::boot,statistic=fc,R=500)
+  #hc11b = lapply(hc1b, function(x) x[["t"]])
+  #hc11b = do.call(cbind,hc11b)
+  hc11b = do.call(cbind,hc1)
   
   h11b = factor_hos*h11b
   hc11b = factor_hos*hc11b
@@ -452,22 +454,24 @@ vector_cost = unlist(lapply(life_exp,formula))
 
 vyll = as.vector(vector_cost %*% as.matrix(age_of_death))
 
-vyll1 = boot::boot(vyll*factor_deaths*population/100000,fc,500)
-mean(vyll1$t)
-boot::boot.ci(vyll1)
-
+vyll1 = vyll*factor_deaths*population/100000#boot::boot(vyll*factor_deaths*population/100000,fc,500)
 
 age_of_death= read.table("data/results_prob_0_121_2_newyorkcity/year_of_death.dat",h=F)
 dim(age_of_death)
 
 vyll = as.vector(vector_cost %*% as.matrix(age_of_death))
 
-vyll2 = boot::boot(vyll*factor_deaths*population/100000,fc,500)
-mean(vyll2$t)
-boot::boot.ci(vyll2)
+vyll2 = vyll*factor_deaths*population/100000#boot::boot(vyll*factor_deaths*population/100000,fc,500)
 
-cost_yll1 = (vyll1$t[,1])
-cost_yll2 = (vyll2$t[,1])
+
+cost_yll1 = vyll1#(vyll1$t[,1])
+cost_yll2 = vyll2#(vyll2$t[,1])
+
+#mean(vyll1$t)
+#boot::boot.ci(vyll1)
+
+#mean(vyll2$t)
+#boot::boot.ci(vyll2)
 
 
 # YLL ---------------------------------------------------------------------
@@ -516,18 +520,18 @@ quantile(cc,c(0.025,0.975,0.5),na.rm=T)
 
 #Initial Value Investment
 IVI = direct_vaccination_cost
-total_cost_vaccination = indirect_vaccination_cost+cost_hospital+cost_indirect_ill1+cost_yll1
-total_cost_no_vac = cost_hospital2+cost_indirect_ill2+cost_yll2
+bb_vac = boot::boot(cost_hospital+cost_indirect_ill1+cost_yll1,fc,R=500)$t[,1]
+total_cost_vaccination = indirect_vaccination_cost+bb_vac
+total_cost_no_vac = boot::boot(cost_hospital2+cost_indirect_ill2+cost_yll2,fc,R=500)$t[,1]
 
 # Final value of investment
 FVI = total_cost_no_vac - total_cost_vaccination
 ROI = (FVI - IVI)/IVI
 
-
 #Initial Value Investment
 IVI_society = direct_vaccination_cost+indirect_vaccination_cost
-total_cost_vaccination_society = cost_hospital+cost_indirect_ill1+cost_yll1
-total_cost_no_vac_society = cost_hospital2+cost_indirect_ill2+cost_yll2
+total_cost_vaccination_society = bb_vac
+total_cost_no_vac_society = total_cost_no_vac
 
 # Final value of investment
 FVI_society = total_cost_no_vac_society - total_cost_vaccination_society
