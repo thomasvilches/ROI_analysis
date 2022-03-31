@@ -112,7 +112,7 @@ idx_2 = 2
   formula = function(x) min((cost_lifelost/r) - (1/((1+r)^x))*(cost_lifelost/r),max_cost_life)
   #formula = function(x) (cost_lifelost/r) - (1/((1+r)^x))*(cost_lifelost/r)
   
-  # Vaccination costs (direct) ----------------------------------------------
+# Vaccination costs (direct) ----------------------------------------------
 
 # This is using the data about expenses provided by NYC
 direct_vaccination_cost = cost_setup+cost_administration+cost_advertisement+
@@ -294,7 +294,7 @@ cost_hos = (sum.sim.hos)*(cost_hosp_nICU+n_EMS_calls*cost_transp_EMS)
 cost_icu = (sum.sim.icu)*(cost_hosp_ICU+n_EMS_calls*cost_transp_EMS)
 
 cost_hospital = (cost_symp+cost_inf+cost_hos+cost_icu)*population/100000
-cost_hospital
+#cost_hospital
 
 ###
 # For the SCENARIO without vaccination
@@ -363,7 +363,7 @@ cost_hos = (sum.sim.hos2)*(cost_hosp_nICU+n_EMS_calls*cost_transp_EMS)
 cost_icu = (sum.sim.icu2)*(cost_hosp_ICU+n_EMS_calls*cost_transp_EMS)
 
 cost_hospital2 = (cost_symp+cost_inf+cost_hos+cost_icu)*population/100000
-cost_hospital2
+#cost_hospital2
 
 # Illness and Hospitalization (indirect) ---------------------------------------------------------
 # 
@@ -444,10 +444,11 @@ factor_deaths = total_deaths/sum.sim.ded
 
 # Let's read the file containing the amount of people that died at age x in each sim
 
-life_exp = read.csv("data/life_exp.csv",sep = ";",h=F)$V2[1:nrow(age_of_death)]
-
 age_of_death= read.table("data/results_prob_0_121_1_newyorkcity/year_of_death.dat",h=F)
 dim(age_of_death)
+
+life_exp = read.csv("data/life_exp.csv",sep = ";",h=F)$V2[1:nrow(age_of_death)]
+
 
 vector_cost = unlist(lapply(life_exp,formula))
 #plot(vector_cost)
@@ -547,6 +548,26 @@ df %>% group_by(scen) %>% summarise(m = mean(cost),ci1 = quantile(cost,0.025,nam
 
 pal_plots = c("#885687","#9ebcda","#756bb1","#bcbddc")
 
+
+# FVI-IVI -----------------------------------------------------------------
+
+
+#Initial Value Investment
+IVI = direct_vaccination_cost
+bb_vac = cost_hospital+cost_indirect_ill1+cost_yll1
+total_cost_vaccination = indirect_vaccination_cost+bb_vac
+total_cost_no_vac = cost_hospital2+cost_indirect_ill2+cost_yll2
+
+###
+xx = total_cost_no_vac-bb_vac
+
+# Final value of investment
+FVI = total_cost_no_vac - total_cost_vaccination
+xx = FVI - IVI
+bb = boot::boot(xx,fc,R=500)
+mean(bb$t[,1])
+bbb=boot::boot.ci(bb,0.95)
+bbb$bca
 # Better plot -------------------------------------------------------------
 
 factor_cost = total_cost_no_vac/total_cost_vaccination
