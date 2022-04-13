@@ -521,9 +521,9 @@ quantile(cc,c(0.025,0.975,0.5),na.rm=T)
 
 #Initial Value Investment
 IVI = direct_vaccination_cost
-bb_vac = boot::boot(cost_hospital+cost_indirect_ill1+cost_yll1,fc,R=500)$t[,1]
+bb_vac = boot::boot(cost_hospital+cost_indirect_ill1,fc,R=500)$t[,1]#boot::boot(cost_hospital+cost_indirect_ill1+cost_yll1,fc,R=500)$t[,1]
 total_cost_vaccination = indirect_vaccination_cost+bb_vac
-total_cost_no_vac = boot::boot(cost_hospital2+cost_indirect_ill2+cost_yll2,fc,R=500)$t[,1]
+total_cost_no_vac = boot::boot(cost_hospital2+cost_indirect_ill2,fc,R=500)$t[,1]#boot::boot(cost_hospital2+cost_indirect_ill2+cost_yll2,fc,R=500)$t[,1]
 
 # Final value of investment
 FVI = total_cost_no_vac - total_cost_vaccination
@@ -554,17 +554,35 @@ pal_plots = c("#885687","#9ebcda","#756bb1","#bcbddc")
 
 #Initial Value Investment
 IVI = direct_vaccination_cost
-bb_vac = cost_hospital+cost_indirect_ill1+cost_yll1
+bb_vac = cost_hospital+cost_indirect_ill1#+cost_yll1
 total_cost_vaccination = indirect_vaccination_cost+bb_vac
-total_cost_no_vac = cost_hospital2+cost_indirect_ill2+cost_yll2
+total_cost_no_vac = cost_hospital2+cost_indirect_ill2#+cost_yll2
 
 ###
 xx = total_cost_no_vac-bb_vac
 
 # Final value of investment
 FVI = total_cost_no_vac - total_cost_vaccination
-xx = FVI - IVI
-bb = boot::boot(xx,fc,R=500)
+xx = (FVI - IVI)/IVI
+bb = boot::boot(xx,fc,R=1000)
+mean(bb$t[,1])
+bbb=boot::boot.ci(bb,0.95)
+bbb$bca
+
+#society
+#Initial Value Investment
+IVI = direct_vaccination_cost+indirect_vaccination_cost
+bb_vac = cost_hospital+cost_indirect_ill1#+cost_yll1
+total_cost_vaccination = indirect_vaccination_cost+bb_vac
+total_cost_no_vac = cost_hospital2+cost_indirect_ill2#+cost_yll2
+
+###
+xx = total_cost_no_vac-bb_vac
+
+# Final value of investment
+FVI = total_cost_no_vac - total_cost_vaccination
+xx = (FVI - IVI)/IVI
+bb = boot::boot(xx,fc,R=1000)
 mean(bb$t[,1])
 bbb=boot::boot.ci(bb,0.95)
 bbb$bca
@@ -920,6 +938,152 @@ ggsave(
   height = 4,
   dpi = 300,
 )
+
+
+
+# Hospitalization Cost ----------------------------------------------------
+set.seed(1432)
+
+mean(cost_hospital2)/mean(cost_hospital)
+
+bb_hos1 = boot::boot(cost_hospital,fc,R=500)
+mean(bb_hos1$t[,1])
+bbb_hos1=boot::boot.ci(bb_hos1,0.95)
+bbb_hos1$bca
+
+bbhos = bb_hos1$t[,1]
+
+bb_hos2 = boot::boot(cost_hospital2,fc,R=500)
+mean(bb_hos2$t[,1])
+bbb=boot::boot.ci(bb_hos2,0.95)
+bbb$bca[c(4,5)]
+
+bbhos2 = bb_hos2$t[,1]
+
+df_plot = data.frame(cost = c(bbhos,bbhos2),
+                     scen= c(rep("Vaccination",length(bbhos)),rep("No Vaccination",length(bbhos2))))
+# 
+
+df_plot
+
+theme_set(theme_void(base_family = "Helvetica"))
+
+theme_update(
+  axis.text.x = element_text(color = "black", face = "bold", size = 26, 
+                             margin = margin(t = 6)),
+  axis.text.y = element_text(color = "black", size = 22, hjust = 1, 
+                             margin = margin(r = 6), family = "Helvetica"),
+  axis.line.x = element_line(color = "black", size = 1),
+  panel.grid.major.y = element_line(color = "grey90", size = .6),
+  plot.background = element_rect(fill = "white", color = "white"),
+  plot.margin = margin(rep(20, 4))
+)
+
+#15946e
+## custom colors
+#my_pal <- rcartocolor::carto_pal(n = 8, name = "Bold")[c(1, 3, 7, 2)]
+my_pal <- c(rcartocolor::carto_pal(n = 8, name = "Bold")[c(1, 3, 7)],"#15946e")
+
+## theme for horizontal charts
+theme_flip <-
+  theme(
+    axis.text.x = element_text(face = "plain", family = "Helvetica", size = 22),
+    axis.text.y = element_text(face = "bold", family = "Helvetica", size = 30),
+    axis.title.x = element_text(face = "bold", family = "Helvetica", size = 22),
+    panel.grid.major.x = element_blank(),#element_line(color = "grey90", size = .6),
+    panel.grid.major.y = element_blank(),
+    axis.ticks.x = element_line(color = "black", size = 1.0),
+    axis.ticks.length.x = unit(0.1,"cm"),
+    legend.position = "none", 
+    legend.text = element_text(family = "Helvetica", size = 18),
+    legend.title = element_text(face = "bold", size = 18),
+    panel.border = element_rect(colour = "black", fill=NA, size=1)
+  )
+
+label_t = c(TeX(r"($C_v$)"),TeX(r"($C_b$)"))
+
+vac_aux = bbb_hos1$bca[c(4,5)]/(10^9)
+
+df_point = data.frame(x = c("Vaccination","Vaccination"),y = c(7.07,7.81))
+df_mean = data.frame(x = c("Vaccination"),y = c(7.42))
+
+ggplot(df_plot %>% filter(scen == "Vaccination"), aes(x = forcats::fct_rev(scen), y = cost/(1e9), 
+                                                      color = scen, fill = scen)) +
+  geom_boxplot(
+    width = .08, fill = "white",
+    size = 1.1, outlier.shape = NA) +
+  ggdist::stat_halfeye(
+    adjust = .33,
+    width = .3, 
+    color = NA,
+    position = position_nudge(x = .07)
+  ) +
+  gghalves::geom_half_point(
+    side = "l", 
+    range_scale = .2, 
+    alpha = .5, size = 1.5,position = position_nudge(x = .08)
+  ) +
+  geom_point(data=df_mean, aes(x = x,y=y),color= "#88419d", fill = "#88419d",shape = 21, size = 2.5)+#stat_summary(fun = mean,geom="point", color= "#88419d", fill = "#88419d",shape = 21, size = 2.5)+
+  geom_point(data=df_point, aes(x = x,y=y),color= "#88419d", fill = "#88419d",shape = 23, size = 2.5)+
+  scale_y_continuous(limits = c(6.8,8.2),breaks = seq(7,8,0.2), expand=expansion(mult=c(0,0)))+
+  scale_x_discrete(breaks = c("Vaccination"),labels = label_t, expand=expansion(mult=c(0,0)))+
+  labs(y="Cost (billion US$)",y=NULL)+
+  coord_flip() +
+  scale_color_manual(values = pal_plots[1], guide = "none") +
+  scale_fill_manual(values = pal_plots[1], guide = "none") +
+  theme_flip
+
+
+
+
+ggsave(
+  "../figures/hosp_vac.pdf",
+  device = "pdf",
+  width = 7,
+  height = 4,
+  dpi = 300,
+)
+
+df_point = data.frame(x = c("No Vaccination","No Vaccination"),y = c(31.47,34.59))
+df_mean = data.frame(x = c("No Vaccination"),y = c(32.97))
+
+ggplot(df_plot %>% filter(scen == "No Vaccination"), aes(x = forcats::fct_rev(scen), y = cost/(1e9), 
+                                                         color = scen, fill = scen)) +
+  geom_boxplot(
+    width = .08, fill = "white",
+    size = 1.1, outlier.shape = NA) +
+  ggdist::stat_halfeye(
+    adjust = .33,
+    width = .3, 
+    color = NA,
+    position = position_nudge(x = .07)
+  ) +
+  gghalves::geom_half_point(
+    side = "l", 
+    range_scale = .2, 
+    alpha = .5, size = 1.5,position = position_nudge(x = .08)
+  ) +
+  geom_point(data=df_mean, aes(x = x,y=y),color= "#6a51a3", fill = "#6a51a3",shape = 21, size = 2.5)+#stat_summary(fun = mean,geom="point", color= "#6a51a3", fill = "#6a51a3",shape = 21, size = 2.5)+
+  geom_point(data=df_point, aes(x = x,y=y),color= "#6a51a3", fill = "#6a51a3",shape = 23, size = 2.5)+
+  scale_y_continuous(limits = c(30,36),breaks = seq(31,35),expand=expansion(mult=c(0,0)))+
+  scale_x_discrete(breaks = c("No Vaccination"),labels = label_t, expand=expansion(mult=c(0,0)))+
+  labs(y="Cost (billion US$)",y=NULL)+
+  coord_flip() +
+  scale_color_manual(values = pal_plots[3], guide = "none") +
+  scale_fill_manual(values = pal_plots[3], guide = "none") +
+  theme_flip
+
+
+
+
+ggsave(
+  "../figures/hos_novac.pdf",
+  device = "pdf",
+  width = 7,
+  height = 4,
+  dpi = 300,
+)
+
 
 
 
