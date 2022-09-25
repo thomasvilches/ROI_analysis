@@ -15,19 +15,19 @@ library(latex2exp)
 # Parameters -------------------------------------------------------------------
 set.seed(1432)
 #Total cost of vaccine clinic setup 
-cost_setup = 3022840
+cost_setup = 4344813
 
 #Expenditure on advertisement and awareness campaigns
-cost_advertisement = 242986305.11 #242,986,305.11
+cost_advertisement = 243390768.20 #242,986,305.11
 #Total cost of vaccine storage and transport 
 cost_storage_and_transport = 7205179.89
 #Cost of vaccine administration (all other costs) 
-cost_administration = 1752152923.18 #1,752,152,923.18
+cost_administration = 1872058070.42 #1,752,152,923.18
 #Other vaccination expenses (mobile and homebound vaccinations) 
 #Expenses that will benefit all vaccinations. ie. CIR, DOITT developed applications
-expenses_benefits = 31000000
+expenses_benefits = 30900000
 # Total cost of vaccines
-vaccines_cost = 282663374.8 #282,663,374.8
+vaccines_cost = 282663374.80 #282,663,374.8
 
 
 #Indirect costs
@@ -53,7 +53,7 @@ cost_ED_care = 3305.01 #cost ED care
 n_EMS_calls = 2.5 #per hospitalized case
 cost_transp_EMS = 900
 r = 0.03 #discount rate
-cost_lifelost = 441325 ##240676 #455484 #per year of life lost #average of statistical life in US is
+cost_lifelost = 100000#441325 ##240676 #455484 #per year of life lost #average of statistical life in US is
 # between US$ 9-10 mi with life expectancy of 79 years - REVISE
 max_cost_life = 10300000
 # Cost of Illness
