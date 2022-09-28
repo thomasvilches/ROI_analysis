@@ -1,4 +1,4 @@
-setwd("~/PosDoc/Coronavirus/ROI/Code/")
+setwd("D:/PosDoc/Coronavirus/ROI/ROI_analysis/")
 library(dplyr)
 library(xlsx)
 library(readxl)
@@ -53,7 +53,7 @@ cost_ED_care = 3305.01 #cost ED care
 n_EMS_calls = 2.5 #per hospitalized case
 cost_transp_EMS = 900
 r = 0.03 #discount rate
-cost_lifelost = 100000#441325 ##240676 #455484 #per year of life lost #average of statistical life in US is
+cost_lifelost = 100000 #441325 ##240676 #455484 #per year of life lost #average of statistical life in US is
 # between US$ 9-10 mi with life expectancy of 79 years - REVISE
 max_cost_life = 10300000
 # Cost of Illness
@@ -145,6 +145,7 @@ n_vacs_second = sum(data$fully[data$AGE_GROUP %in% working_group])
 data_booster = read.csv("data/Demo_additional_dose_age_2022-02-08_1500.csv",sep = ";")
 head(data_booster)
 tail(data_booster)
+data_booster = data_booster %>% rename(DATE = ï..DATE)
 
 data_booster$DATE = as.Date(data_booster$DATE)
 
@@ -519,11 +520,13 @@ mean(cc)
 quantile(cc,c(0.025,0.975,0.5),na.rm=T)
 # Results -----------------------------------------------------------------
 
+#check if you want with YLL or not
+
 #Initial Value Investment
 IVI = direct_vaccination_cost
-bb_vac = boot::boot(cost_hospital+cost_indirect_ill1,fc,R=500)$t[,1]#boot::boot(cost_hospital+cost_indirect_ill1+cost_yll1,fc,R=500)$t[,1]
+bb_vac = boot::boot(cost_hospital+cost_indirect_ill1,fc,R=500)$t[,1]#boot::boot(cost_hospital+cost_indirect_ill1+cost_yll1,fc,R=500)$t[,1] #
 total_cost_vaccination = indirect_vaccination_cost+bb_vac
-total_cost_no_vac = boot::boot(cost_hospital2+cost_indirect_ill2,fc,R=500)$t[,1]#boot::boot(cost_hospital2+cost_indirect_ill2+cost_yll2,fc,R=500)$t[,1]
+total_cost_no_vac = boot::boot(cost_hospital2+cost_indirect_ill2,fc,R=500)$t[,1]#boot::boot(cost_hospital2+cost_indirect_ill2+cost_yll2,fc,R=500)$t[,1]#
 
 # Final value of investment
 FVI = total_cost_no_vac - total_cost_vaccination
@@ -538,13 +541,13 @@ total_cost_no_vac_society = total_cost_no_vac
 FVI_society = total_cost_no_vac_society - total_cost_vaccination_society
 ROI_society = (FVI_society - IVI_society)/IVI_society
 
-df = data.frame(cost = c(total_cost_vaccination,total_cost_no_vac),
+df = data.frame(cost = c(total_cost_vaccination_society,total_cost_no_vac_society),
                 scen= c(rep("Vaccination",length(total_cost_vaccination)),rep("No Vaccination",length(total_cost_no_vac))))
 
-df %>% group_by(scen) %>% summarise(m = mean(cost),ci1 = quantile(cost,0.025,name=F),ci2 = quantile(cost,0.975,name=F)) %>%
+tab1 = df %>% group_by(scen) %>% summarise(m = mean(cost),ci1 = quantile(cost,0.025,name=F),ci2 = quantile(cost,0.975,name=F)) %>%
   mutate(m=format(m,big.mark=","),ci1=format(ci1,big.mark=","),ci2=format(ci2,big.mark=","))
 
-
+write.csv(tab1, "results/total_cost.csv", row.names = F)
 
 pal_plots = c("#885687","#9ebcda","#756bb1","#bcbddc")
 
@@ -762,6 +765,10 @@ colSums(table,na.rm=T) %>% format( big.mark=",")
 
 # Data for plot -----------------------------------------------------------
 
+df_point2 = data.frame(x = c("CI2.5%", "CI97.5%", "mean", "median"),y = c(quantile(ROI_society,c(0.025,0.975),name=F),
+                                                                         mean(ROI_society), median(ROI_society)))
+write.csv(df_point2,"results/roi_society.csv")
+
 dd = data.frame(ROI=ROI_society)
 df_point = data.frame(x = c(as.factor(1),as.factor(1)),y = quantile(ROI_society,c(0.025,0.975),name=F))
 
@@ -783,7 +790,7 @@ ggplot(dd, aes(x = forcats::fct_rev(as.factor(1)), y = ROI,color = as.factor(1),
   ) +
   stat_summary(fun = mean,geom="point", color= "#6a51a3", fill = "#6a51a3",shape = 21, size = 2.5)+
   geom_point(data=df_point, aes(x = x,y=y),color= "#6a51a3", fill = "#6a51a3",shape = 23, size = 2.5)+
-  scale_y_continuous(limits= c(26.5,32.5),breaks = seq(27,32,1),expand=expansion(mult=c(0,0)))+
+  #scale_y_continuous(limits= c(26.5,32.5),breaks = seq(27,32,1),expand=expansion(mult=c(0,0)))+
   scale_x_discrete(expand=expansion(mult=c(0,0)))+
   labs(y="Return of investment",y=NULL)+
   coord_flip() +
@@ -793,7 +800,7 @@ ggplot(dd, aes(x = forcats::fct_rev(as.factor(1)), y = ROI,color = as.factor(1),
 
 
 ggsave(
-  "../figures/ROI_soc.pdf",
+  "results/ROI_soc.pdf",
   device = "pdf",
   width = 7,
   height = 4,
@@ -807,9 +814,10 @@ dd %>% summarise(m = mean(ROI),ci1 = quantile(ROI,0.025,name=F),ci2 = quantile(R
 table = data.frame(Vaccination=c(mean(direct_vaccination_cost),mean(indirect_vaccination_cost), mean(cost_hospital), mean(cost_indirect_ill1),mean(cost_yll1)),
                    NoVaccination=c(NA,NA, mean(cost_hospital2), mean(cost_indirect_ill2),mean(cost_yll2)))
 rownames(table) = c("Direct Vaccination Cost","Indirect Vaccination Cost","Direct cost of Illness","Illness indirect cost","YLL cost")
-table %>% mutate(Vaccination = format(Vaccination, big.mark=","),
+tab2 = table %>% mutate(Vaccination = format(Vaccination, big.mark=","),
                  NoVaccination = format(NoVaccination, big.mark=","))
 
+write.csv(tab2, "results/summary_cost.csv", row.names = T)
 
 colSums(table,na.rm=T) %>% format( big.mark=",")
 
@@ -818,11 +826,19 @@ colSums(table,na.rm=T) %>% format( big.mark=",")
 
 mean(cost_yll2)/mean(cost_yll1)
 
-df_plot = data.frame(cost = c(cost_yll1,cost_yll2),
-                     scen= c(rep("Vaccination",length(cost_yll1)),rep("No Vaccination",length(cost_yll2))))
+cost_yll1_bb = boot::boot(cost_yll1,fc,R=1000)
+cost_yll2_bb = boot::boot(cost_yll2,fc,R=1000)
+
+df_plot = data.frame(cost = c(cost_yll1_bb$t[,1],cost_yll2_bb$t[,1]),
+                     scen= c(rep("Vaccination",length(cost_yll1_bb$t[,1])),rep("No Vaccination",length(cost_yll2_bb$t[,1]))))
 # 
 
-df_plot
+tab3 = df_plot %>% group_by(scen) %>% summarise(`CI2.5%` = quantile(cost, 0.025, names = F),
+                                         `CI97.5%` = quantile(cost, 0.975, names = F),
+                                         mean = mean(cost),
+                                         median = median(cost))
+
+write.csv(tab3, "results/vsl.csv", row.names = F)
 
 theme_set(theme_void(base_family = "Helvetica"))
 
@@ -880,7 +896,7 @@ ggplot(df_plot %>% filter(scen == "Vaccination"), aes(x = forcats::fct_rev(scen)
   ) +
   stat_summary(fun = mean,geom="point", color= "#88419d", fill = "#88419d",shape = 21, size = 2.5)+
   geom_point(data=df_point, aes(x = x,y=y),color= "#88419d", fill = "#88419d",shape = 23, size = 2.5)+
-  scale_y_continuous(limits = c(30.5,37.5),breaks = seq(31,37), expand=expansion(mult=c(0,0)))+
+  scale_y_continuous(expand=expansion(mult=c(0,0)))+
   scale_x_discrete(breaks = c("Vaccination"),labels = label_t, expand=expansion(mult=c(0,0)))+
   labs(y="Cost (billion US$)",y=NULL)+
   coord_flip() +
@@ -965,6 +981,13 @@ df_plot = data.frame(cost = c(bbhos,bbhos2),
 # 
 
 df_plot
+
+tab4 = df_plot %>% group_by(scen) %>% summarise(`CI2.5%` = quantile(cost, 0.025, names = F),
+                                                `CI97.5%` = quantile(cost, 0.975, names = F),
+                                                mean = mean(cost),
+                                                median = median(cost))
+
+write.csv(tab4, "results/hosp.csv", row.names = F)
 
 theme_set(theme_void(base_family = "Helvetica"))
 
